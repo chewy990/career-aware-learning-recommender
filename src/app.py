@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import csv
+import base64
+import html
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -25,6 +27,8 @@ from edu_recommender.models import Recommendation, RecommenderSuite  # noqa: E40
 
 DATA_DIR = ROOT / "data"
 OUTPUT_DIR = ROOT / "outputs"
+ASSET_DIR = ROOT / "assets"
+HERO_IMAGE = ASSET_DIR / "learning-path-hero.png"
 MODELS = ["popularity", "content_based", "hybrid"]
 TOP_K = 5
 
@@ -35,180 +39,6 @@ st.set_page_config(
 )
 
 
-def apply_visual_theme() -> None:
-    st.markdown(
-        """
-        <style>
-        :root {
-            --app-bg: #f8fafc;
-            --panel-bg: #ffffff;
-            --ink: #172033;
-            --muted: #64748b;
-            --line: #d8dee8;
-            --accent: #0f766e;
-            --accent-dark: #115e59;
-            --soft-accent: #e8f3f1;
-        }
-
-        .stApp {
-            background:
-                radial-gradient(circle at 12% 0%, rgba(15, 118, 110, 0.08), transparent 28rem),
-                linear-gradient(180deg, #ffffff 0%, var(--app-bg) 34rem);
-            color: var(--ink);
-            font-family: "Segoe UI", "Geist", "Satoshi", Arial, sans-serif;
-        }
-
-        [data-testid="stAppViewContainer"] .main .block-container {
-            max-width: 1180px;
-            padding-top: 2rem;
-            padding-bottom: 3rem;
-        }
-
-        [data-testid="stSidebar"] {
-            background: #f1f5f9;
-            border-right: 1px solid var(--line);
-        }
-
-        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
-            color: var(--ink);
-            letter-spacing: 0;
-            font-size: 0.9rem;
-        }
-
-        h1 {
-            color: var(--ink);
-            font-size: clamp(2rem, 4vw, 3.4rem) !important;
-            line-height: 0.98 !important;
-            letter-spacing: 0 !important;
-            font-weight: 760 !important;
-            max-width: 780px;
-        }
-
-        h2, h3 {
-            letter-spacing: 0 !important;
-            color: var(--ink);
-        }
-
-        p, li, [data-testid="stCaptionContainer"] {
-            color: var(--muted);
-        }
-
-        div[data-testid="stMetric"] {
-            background: rgba(255, 255, 255, 0.72);
-            border: 1px solid rgba(216, 222, 232, 0.9);
-            border-radius: 8px;
-            padding: 0.75rem 0.85rem;
-            box-shadow: 0 18px 34px -30px rgba(15, 23, 42, 0.45);
-        }
-
-        div[data-testid="stMetric"] label,
-        div[data-testid="stMetric"] [data-testid="stMetricLabel"] {
-            color: var(--muted) !important;
-        }
-
-        div[data-testid="stMetricValue"] {
-            color: var(--ink);
-            font-size: 1.3rem;
-            letter-spacing: 0;
-        }
-
-        .stButton > button {
-            border-radius: 8px;
-            border: 1px solid #223044;
-            background: #172033;
-            color: #ffffff;
-            font-weight: 650;
-            transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
-        }
-
-        .stButton > button:hover {
-            background: #223044;
-            border-color: #223044;
-            color: #ffffff;
-        }
-
-        .stButton > button:active {
-            transform: translateY(1px) scale(0.99);
-        }
-
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 0.75rem;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .stTabs [data-baseweb="tab"] {
-            border-radius: 0;
-            padding-left: 0;
-            padding-right: 0;
-            color: var(--muted);
-            font-weight: 650;
-        }
-
-        .stTabs [aria-selected="true"] {
-            color: var(--accent-dark) !important;
-        }
-
-        div[data-testid="stExpander"] {
-            border: 1px solid rgba(216, 222, 232, 0.95);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.78);
-            box-shadow: 0 20px 42px -34px rgba(15, 23, 42, 0.5);
-            overflow: hidden;
-        }
-
-        div[data-testid="stExpander"] details summary {
-            min-height: 3rem;
-            font-weight: 720;
-            color: var(--ink);
-            background: linear-gradient(90deg, rgba(232, 243, 241, 0.85), rgba(255, 255, 255, 0));
-            border-bottom: 1px solid rgba(216, 222, 232, 0.72);
-        }
-
-        div[data-testid="stCheckbox"] label {
-            background: var(--soft-accent);
-            border: 1px solid rgba(15, 118, 110, 0.18);
-            border-radius: 999px;
-            padding: 0.18rem 0.55rem;
-            width: fit-content;
-            transition: transform 160ms ease, border-color 160ms ease;
-        }
-
-        div[data-testid="stCheckbox"] label:hover {
-            border-color: rgba(15, 118, 110, 0.38);
-        }
-
-        div[data-testid="stCheckbox"] label:active {
-            transform: translateY(1px);
-        }
-
-        hr {
-            border-color: rgba(216, 222, 232, 0.8);
-            margin: 1rem 0;
-        }
-
-        [data-testid="stDataFrame"] {
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 18px 34px -30px rgba(15, 23, 42, 0.45);
-        }
-
-        .stAlert {
-            border-radius: 8px;
-        }
-
-        @media (max-width: 768px) {
-            [data-testid="stAppViewContainer"] .main .block-container {
-                padding-left: 1rem;
-                padding-right: 1rem;
-            }
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
 def load_project_data():
     resources = read_resources(DATA_DIR / "resources.csv")
     skill_map = read_skill_map(DATA_DIR / "skill_map.csv")
@@ -217,14 +47,380 @@ def load_project_data():
     return resources, skill_map, profiles, relevance
 
 
+def apply_visual_theme() -> None:
+    st.markdown(
+        """
+        <style>
+        :root {
+            --fyp-ink: #171717;
+            --fyp-muted: #5f6368;
+            --fyp-bg: #f6f7f4;
+            --fyp-surface: #ffffff;
+            --fyp-line: #d9ddd6;
+            --fyp-maroon: #7a003c;
+            --fyp-gold: #f1b434;
+            --fyp-teal: #0f766e;
+            --fyp-blue: #2f5f98;
+        }
+
+        .stApp {
+            background:
+                linear-gradient(180deg, rgba(122, 0, 60, 0.08), rgba(122, 0, 60, 0) 280px),
+                var(--fyp-bg);
+            color: var(--fyp-ink);
+        }
+
+        .block-container {
+            max-width: 1180px;
+            padding-top: 2rem;
+            padding-bottom: 3rem;
+        }
+
+        section[data-testid="stSidebar"] {
+            background: #101314;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        section[data-testid="stSidebar"] * {
+            color: #f7f3e8;
+        }
+
+        section[data-testid="stSidebar"] div[data-baseweb="select"] > div,
+        section[data-testid="stSidebar"] div[data-baseweb="radio"],
+        section[data-testid="stSidebar"] div[data-baseweb="slider"] {
+            color: #f7f3e8;
+        }
+
+        .fyp-header {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(290px, 410px);
+            gap: 1.5rem;
+            align-items: center;
+            margin: 0 0 1.4rem;
+            padding: 1.35rem 1.45rem;
+            background:
+                linear-gradient(135deg, rgba(122, 0, 60, 0.96), rgba(34, 36, 38, 0.96)),
+                linear-gradient(90deg, var(--fyp-gold), var(--fyp-teal));
+            border: 1px solid rgba(23, 23, 23, 0.12);
+            border-radius: 8px;
+            box-shadow: 0 18px 45px rgba(30, 24, 18, 0.16);
+            overflow: hidden;
+        }
+
+        .fyp-header:before {
+            content: "";
+            position: absolute;
+            inset: auto 0 0 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--fyp-gold), var(--fyp-teal), var(--fyp-blue));
+        }
+
+        .fyp-kicker {
+            color: #f6d36b;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0;
+            text-transform: uppercase;
+            margin-bottom: 0.35rem;
+        }
+
+        .fyp-header h1 {
+            color: #ffffff;
+            font-size: 2.15rem;
+            line-height: 1.08;
+            margin: 0;
+            letter-spacing: 0;
+        }
+
+        .fyp-header p {
+            max-width: 680px;
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0.55rem 0 0;
+            font-size: 1rem;
+        }
+
+        .fyp-hero-visual {
+            position: relative;
+            min-height: 220px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 18px 38px rgba(0, 0, 0, 0.22);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .fyp-hero-visual img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            min-height: 220px;
+            object-fit: cover;
+        }
+
+        .fyp-header-meta {
+            position: absolute;
+            left: 0.8rem;
+            right: 0.8rem;
+            bottom: 0.8rem;
+            display: flex;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+        }
+
+        .fyp-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 2rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 8px;
+            background: rgba(10, 10, 10, 0.42);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            font-size: 0.82rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        div[data-testid="stTabs"] button {
+            border-radius: 8px 8px 0 0;
+            font-weight: 700;
+        }
+
+        div[data-testid="stTabs"] button p {
+            color: var(--fyp-maroon);
+            font-weight: 800;
+        }
+
+        div[data-testid="stTabs"] button[aria-selected="true"] p {
+            color: #e3204f;
+        }
+
+        div[data-testid="stExpander"] {
+            border: 1px solid var(--fyp-line);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.72);
+            box-shadow: 0 12px 28px rgba(28, 31, 32, 0.06);
+            overflow: hidden;
+        }
+
+        div[data-testid="stExpander"] details summary {
+            background: linear-gradient(90deg, #ffffff, #f5f2ea);
+            border-bottom: 1px solid rgba(217, 221, 214, 0.76);
+            min-height: 3rem;
+        }
+
+        div[data-testid="stExpander"] details summary p {
+            font-weight: 800;
+            color: var(--fyp-ink);
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            border-color: rgba(122, 0, 60, 0.14);
+            border-radius: 8px;
+            background: var(--fyp-surface);
+            box-shadow: 0 8px 22px rgba(20, 20, 20, 0.05);
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+            border-color: rgba(122, 0, 60, 0.34);
+        }
+
+        .stMarkdown h3,
+        .stMarkdown h4 {
+            letter-spacing: 0;
+        }
+
+        .stMarkdown p {
+            color: inherit;
+        }
+
+        div[data-testid="stDataFrame"] {
+            border: 1px solid var(--fyp-line);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 26px rgba(20, 20, 20, 0.05);
+            background: #ffffff;
+        }
+
+        .fyp-research-panel {
+            padding: 1rem;
+            border: 1px solid var(--fyp-line);
+            border-radius: 8px;
+            background: #fffdf7;
+            box-shadow: 0 10px 26px rgba(20, 20, 20, 0.05);
+        }
+
+        .fyp-research-table {
+            display: grid;
+            gap: 0.7rem;
+        }
+
+        .fyp-research-row {
+            display: grid;
+            grid-template-columns: 56px minmax(170px, 1.1fr) minmax(90px, 0.55fr) 78px minmax(260px, 1.8fr);
+            gap: 0.8rem;
+            align-items: start;
+            padding: 0.9rem;
+            border: 1px solid rgba(122, 0, 60, 0.14);
+            border-radius: 8px;
+            background: #ffffff;
+        }
+
+        .fyp-research-head {
+            background: #171717;
+            color: #ffffff;
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .fyp-research-cell {
+            color: var(--fyp-ink);
+            font-size: 0.92rem;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+        }
+
+        .fyp-research-muted {
+            color: var(--fyp-muted);
+            font-weight: 700;
+        }
+
+        .stButton button {
+            border-radius: 8px;
+            border: 1px solid rgba(122, 0, 60, 0.28);
+            background: #ffffff;
+            color: var(--fyp-maroon);
+            font-weight: 800;
+        }
+
+        .stButton button:hover {
+            border-color: var(--fyp-maroon);
+            color: var(--fyp-maroon);
+            background: #fff8e7;
+        }
+
+        .stCheckbox label p {
+            color: var(--fyp-ink);
+            font-weight: 800;
+        }
+
+        .stCheckbox label {
+            gap: 0.55rem;
+        }
+
+        .stCheckbox label > div:first-child {
+            width: 1.15rem;
+            height: 1.15rem;
+            border-radius: 4px;
+            border: 2px solid var(--fyp-maroon);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(122, 0, 60, 0.08);
+        }
+
+        .stCheckbox label > div:first-child:hover {
+            border-color: #e3204f;
+            box-shadow: 0 0 0 3px rgba(227, 32, 79, 0.14);
+        }
+
+        .stCheckbox label:has(input:checked) > div:first-child {
+            border-color: var(--fyp-gold);
+            background: var(--fyp-maroon);
+            box-shadow: 0 0 0 3px rgba(241, 180, 52, 0.18);
+        }
+
+        .stCheckbox label > div:first-child svg {
+            color: #ffffff;
+        }
+
+        div[data-testid="stCaptionContainer"] {
+            color: var(--fyp-muted);
+        }
+
+        hr {
+            border-color: rgba(217, 221, 214, 0.85);
+        }
+
+        @media (max-width: 760px) {
+            .block-container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            .fyp-header {
+                grid-template-columns: 1fr;
+                padding: 1.15rem;
+            }
+
+            .fyp-header h1 {
+                font-size: 1.65rem;
+            }
+
+            .fyp-hero-visual,
+            .fyp-hero-visual img {
+                min-height: 170px;
+            }
+
+            .fyp-research-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def show_app_header() -> None:
+    hero_uri = image_data_uri(HERO_IMAGE)
+    hero_markup = (
+        f'<div class="fyp-hero-visual">'
+        f'<img src="{hero_uri}" alt="Abstract learning path with connected data nodes and resource cards">'
+        f'<div class="fyp-header-meta">'
+        f'<span class="fyp-pill">3 pathways</span>'
+        f'<span class="fyp-pill">Hybrid model</span>'
+        f'<span class="fyp-pill">Explainable</span>'
+        f'</div></div>'
+        if hero_uri
+        else (
+            '<div class="fyp-header-meta">'
+            '<span class="fyp-pill">3 pathways</span>'
+            '<span class="fyp-pill">Hybrid model</span>'
+            '<span class="fyp-pill">Explainable</span>'
+            '</div>'
+        )
+    )
+    st.markdown(
+        (
+            '<section class="fyp-header">'
+            '<div>'
+            '<div class="fyp-kicker">FYP Recommender Prototype</div>'
+            '<h1>Career-Aware Learning Path</h1>'
+            '<p>Precise learning steps for computing learners, tuned by career goal, skill gaps, and progress.</p>'
+            '</div>'
+            f'{hero_markup}'
+            '</section>'
+        ),
+        unsafe_allow_html=True,
+    )
+
+
+def image_data_uri(path: Path) -> str:
+    if not path.exists():
+        return ""
+    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
+
+
 def main() -> None:
-    apply_visual_theme()
     resources, skill_map, profiles, relevance = load_project_data()
     suite = RecommenderSuite(resources, skill_map)
     resources_by_id = {resource.resource_id: resource for resource in resources}
 
-    st.title("Career-Aware Learning Path")
-    st.caption("A dynamic recommender that helps learners practise sooner, not complete fixed tracks")
+    apply_visual_theme()
+    show_app_header()
 
     profile = build_active_profile(profiles, skill_map)
     gaps = suite.skill_gaps(profile)
@@ -323,6 +519,7 @@ def custom_profile_sidebar(skill_map: dict[str, dict[str, int]]) -> LearnerProfi
             skill.replace("_", " ").title(),
             min_value=0,
             max_value=3,
+            value=int(st.session_state[slider_key]),
             key=slider_key,
             help=f"Pathway importance: {pathway_weight}/3",
         )
@@ -371,10 +568,6 @@ def show_profile(profile: LearnerProfile) -> None:
     completed_resources = st.session_state.get("completed_resources", [])
     if completed_resources:
         st.caption(f"Completed resources: {len(completed_resources)}")
-    profile_cols = st.columns(3)
-    profile_cols[0].metric("Weak skills", len(profile.weak_skills))
-    profile_cols[1].metric("Completed topics", len(profile.completed_topics))
-    profile_cols[2].metric("Resources done", len(completed_resources))
 
 
 def show_skill_gaps(
@@ -686,35 +879,35 @@ def show_learning_path(
     profile: LearnerProfile,
 ) -> None:
     for stage, recommendations in path.items():
-        with st.expander(stage, expanded=True):
+        with st.expander(stage, expanded=stage.startswith("1.") or stage.startswith("2.")):
             if not recommendations:
                 st.info("No resources assigned to this stage.")
                 continue
             for recommendation in recommendations:
-                resource = resources_by_id[recommendation.resource_id]
-                completed_resource_ids = {
-                    item["resource_id"] for item in st.session_state.get("completed_resources", [])
-                }
-                reset_version = st.session_state.get("progress_reset_version", 0)
-                checkbox_key = f"complete_{reset_version}_{stage}_{resource.resource_id}"
-                completed = resource.resource_id in completed_resource_ids
-                checked = st.checkbox(
-                    "Completed",
-                    value=completed,
-                    key=checkbox_key,
-                    disabled=completed,
-                    on_change=complete_resource if not completed else None,
-                    args=(profile, resource) if not completed else None,
-                )
-                completed = completed or checked
-                title = f"~~{recommendation.title}~~" if completed else recommendation.title
-                st.markdown(f"**{title}**")
-                st.caption(
-                    f"{resource.provider} | {resource.format} | "
-                    f"{difficulty_label(resource.difficulty_level)} | {resource.duration_hours:g} hours"
-                )
-                st.write(shorten_explanation(recommendation.explanation))
-                st.divider()
+                with st.container(border=True):
+                    resource = resources_by_id[recommendation.resource_id]
+                    completed_resource_ids = {
+                        item["resource_id"] for item in st.session_state.get("completed_resources", [])
+                    }
+                    reset_version = st.session_state.get("progress_reset_version", 0)
+                    checkbox_key = f"complete_{reset_version}_{stage}_{resource.resource_id}"
+                    completed = resource.resource_id in completed_resource_ids
+                    checked = st.checkbox(
+                        "Completed",
+                        value=completed,
+                        key=checkbox_key,
+                        disabled=completed,
+                    )
+                    if checked and not completed:
+                        complete_resource(profile, resource)
+                        st.rerun()
+                    title = f"~~{recommendation.title}~~" if completed else recommendation.title
+                    st.markdown(f"**{title}**")
+                    st.caption(
+                        f"{resource.provider} | {resource.format} | "
+                        f"{difficulty_label(resource.difficulty_level)} | {resource.duration_hours:g} hours"
+                    )
+                    st.write(shorten_explanation(recommendation.explanation))
 
 
 def is_broad_track(resource: Resource) -> bool:
@@ -829,17 +1022,39 @@ def shorten_explanation(explanation: str) -> str:
 
 
 def show_recommendations(recommendations: list[Recommendation]) -> None:
-    recommendation_rows = [
-        {
-            "Rank": recommendation.rank,
-            "Resource": recommendation.title,
-            "Provider": recommendation.provider,
-            "Score": recommendation.score,
-            "Explanation": recommendation.explanation,
-        }
-        for recommendation in recommendations
+    rows = [
+        """
+        <div class="fyp-research-row fyp-research-head">
+            <div>Rank</div>
+            <div>Resource</div>
+            <div>Provider</div>
+            <div>Score</div>
+            <div>Explanation</div>
+        </div>
+        """
     ]
-    st.dataframe(recommendation_rows, hide_index=True, width="stretch")
+    for recommendation in recommendations:
+        rows.append(
+            f"""
+            <div class="fyp-research-row">
+                <div class="fyp-research-cell fyp-research-muted">#{recommendation.rank}</div>
+                <div class="fyp-research-cell"><strong>{html.escape(recommendation.title)}</strong></div>
+                <div class="fyp-research-cell">{html.escape(recommendation.provider)}</div>
+                <div class="fyp-research-cell fyp-research-muted">{recommendation.score:.3f}</div>
+                <div class="fyp-research-cell">{html.escape(recommendation.explanation)}</div>
+            </div>
+            """
+        )
+    st.markdown(
+        f"""
+        <div class="fyp-research-panel">
+            <div class="fyp-research-table">
+                {''.join(rows)}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def calculate_metrics(suite: RecommenderSuite, profiles, relevance):
