@@ -35,6 +35,180 @@ st.set_page_config(
 )
 
 
+def apply_visual_theme() -> None:
+    st.markdown(
+        """
+        <style>
+        :root {
+            --app-bg: #f8fafc;
+            --panel-bg: #ffffff;
+            --ink: #172033;
+            --muted: #64748b;
+            --line: #d8dee8;
+            --accent: #0f766e;
+            --accent-dark: #115e59;
+            --soft-accent: #e8f3f1;
+        }
+
+        .stApp {
+            background:
+                radial-gradient(circle at 12% 0%, rgba(15, 118, 110, 0.08), transparent 28rem),
+                linear-gradient(180deg, #ffffff 0%, var(--app-bg) 34rem);
+            color: var(--ink);
+            font-family: "Segoe UI", "Geist", "Satoshi", Arial, sans-serif;
+        }
+
+        [data-testid="stAppViewContainer"] .main .block-container {
+            max-width: 1180px;
+            padding-top: 2rem;
+            padding-bottom: 3rem;
+        }
+
+        [data-testid="stSidebar"] {
+            background: #f1f5f9;
+            border-right: 1px solid var(--line);
+        }
+
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
+            color: var(--ink);
+            letter-spacing: 0;
+            font-size: 0.9rem;
+        }
+
+        h1 {
+            color: var(--ink);
+            font-size: clamp(2rem, 4vw, 3.4rem) !important;
+            line-height: 0.98 !important;
+            letter-spacing: 0 !important;
+            font-weight: 760 !important;
+            max-width: 780px;
+        }
+
+        h2, h3 {
+            letter-spacing: 0 !important;
+            color: var(--ink);
+        }
+
+        p, li, [data-testid="stCaptionContainer"] {
+            color: var(--muted);
+        }
+
+        div[data-testid="stMetric"] {
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(216, 222, 232, 0.9);
+            border-radius: 8px;
+            padding: 0.75rem 0.85rem;
+            box-shadow: 0 18px 34px -30px rgba(15, 23, 42, 0.45);
+        }
+
+        div[data-testid="stMetric"] label,
+        div[data-testid="stMetric"] [data-testid="stMetricLabel"] {
+            color: var(--muted) !important;
+        }
+
+        div[data-testid="stMetricValue"] {
+            color: var(--ink);
+            font-size: 1.3rem;
+            letter-spacing: 0;
+        }
+
+        .stButton > button {
+            border-radius: 8px;
+            border: 1px solid #223044;
+            background: #172033;
+            color: #ffffff;
+            font-weight: 650;
+            transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+        }
+
+        .stButton > button:hover {
+            background: #223044;
+            border-color: #223044;
+            color: #ffffff;
+        }
+
+        .stButton > button:active {
+            transform: translateY(1px) scale(0.99);
+        }
+
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .stTabs [data-baseweb="tab"] {
+            border-radius: 0;
+            padding-left: 0;
+            padding-right: 0;
+            color: var(--muted);
+            font-weight: 650;
+        }
+
+        .stTabs [aria-selected="true"] {
+            color: var(--accent-dark) !important;
+        }
+
+        div[data-testid="stExpander"] {
+            border: 1px solid rgba(216, 222, 232, 0.95);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.78);
+            box-shadow: 0 20px 42px -34px rgba(15, 23, 42, 0.5);
+            overflow: hidden;
+        }
+
+        div[data-testid="stExpander"] details summary {
+            min-height: 3rem;
+            font-weight: 720;
+            color: var(--ink);
+            background: linear-gradient(90deg, rgba(232, 243, 241, 0.85), rgba(255, 255, 255, 0));
+            border-bottom: 1px solid rgba(216, 222, 232, 0.72);
+        }
+
+        div[data-testid="stCheckbox"] label {
+            background: var(--soft-accent);
+            border: 1px solid rgba(15, 118, 110, 0.18);
+            border-radius: 999px;
+            padding: 0.18rem 0.55rem;
+            width: fit-content;
+            transition: transform 160ms ease, border-color 160ms ease;
+        }
+
+        div[data-testid="stCheckbox"] label:hover {
+            border-color: rgba(15, 118, 110, 0.38);
+        }
+
+        div[data-testid="stCheckbox"] label:active {
+            transform: translateY(1px);
+        }
+
+        hr {
+            border-color: rgba(216, 222, 232, 0.8);
+            margin: 1rem 0;
+        }
+
+        [data-testid="stDataFrame"] {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 18px 34px -30px rgba(15, 23, 42, 0.45);
+        }
+
+        .stAlert {
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            [data-testid="stAppViewContainer"] .main .block-container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def load_project_data():
     resources = read_resources(DATA_DIR / "resources.csv")
     skill_map = read_skill_map(DATA_DIR / "skill_map.csv")
@@ -44,6 +218,7 @@ def load_project_data():
 
 
 def main() -> None:
+    apply_visual_theme()
     resources, skill_map, profiles, relevance = load_project_data()
     suite = RecommenderSuite(resources, skill_map)
     resources_by_id = {resource.resource_id: resource for resource in resources}
@@ -196,6 +371,10 @@ def show_profile(profile: LearnerProfile) -> None:
     completed_resources = st.session_state.get("completed_resources", [])
     if completed_resources:
         st.caption(f"Completed resources: {len(completed_resources)}")
+    profile_cols = st.columns(3)
+    profile_cols[0].metric("Weak skills", len(profile.weak_skills))
+    profile_cols[1].metric("Completed topics", len(profile.completed_topics))
+    profile_cols[2].metric("Resources done", len(completed_resources))
 
 
 def show_skill_gaps(
