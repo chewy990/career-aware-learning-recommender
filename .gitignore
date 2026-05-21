@@ -1,0 +1,18 @@
+# Python / Streamlit caches
+__pycache__/
+*.py[cod]
+.streamlit/secrets.toml
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local/editor files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporary compile check
+outputs/app_compile_check.pyc

@@ -1,0 +1,36 @@
+profile_id,model,rank,resource_id,title,provider,score,explanation
+P001,popularity,1,R008,Applied Machine Learning in Python,Coursera,0.8865,Recommended because this resource has strong general quality and popularity signals.
+P001,popularity,2,R001,SQL for Data Analysis,Coursera,0.873,Recommended because this resource has strong general quality and popularity signals.
+P001,popularity,3,R025,Google Data Analytics Foundations,Coursera,0.8675,Recommended because this resource has strong general quality and popularity signals.
+P001,popularity,4,R005,Python Basics for Everybody,freeCodeCamp,0.8615,Recommended because this resource has strong general quality and popularity signals.
+P001,popularity,5,R003,Excel Skills for Business,Coursera,0.846,Recommended because this resource has strong general quality and popularity signals.
+P002,popularity,1,R008,Applied Machine Learning in Python,Coursera,0.8865,Recommended because this resource has strong general quality and popularity signals.
+P002,popularity,2,R001,SQL for Data Analysis,Coursera,0.873,Recommended because this resource has strong general quality and popularity signals.
+P002,popularity,3,R025,Google Data Analytics Foundations,Coursera,0.8675,Recommended because this resource has strong general quality and popularity signals.
+P002,popularity,4,R005,Python Basics for Everybody,freeCodeCamp,0.8615,Recommended because this resource has strong general quality and popularity signals.
+P002,popularity,5,R003,Excel Skills for Business,Coursera,0.846,Recommended because this resource has strong general quality and popularity signals.
+P003,popularity,1,R008,Applied Machine Learning in Python,Coursera,0.8865,Recommended because this resource has strong general quality and popularity signals.
+P003,popularity,2,R001,SQL for Data Analysis,Coursera,0.873,Recommended because this resource has strong general quality and popularity signals.
+P003,popularity,3,R025,Google Data Analytics Foundations,Coursera,0.8675,Recommended because this resource has strong general quality and popularity signals.
+P003,popularity,4,R005,Python Basics for Everybody,freeCodeCamp,0.8615,Recommended because this resource has strong general quality and popularity signals.
+P003,popularity,5,R003,Excel Skills for Business,Coursera,0.846,Recommended because this resource has strong general quality and popularity signals.
+P004,popularity,1,R008,Applied Machine Learning in Python,Coursera,0.8865,Recommended because this resource has strong general quality and popularity signals.
+P004,popularity,2,R001,SQL for Data Analysis,Coursera,0.873,Recommended because this resource has strong general quality and popularity signals.
+P004,popularity,3,R025,Google Data Analytics Foundations,Coursera,0.8675,Recommended because this resource has strong general quality and popularity signals.
+P004,popularity,4,R005,Python Basics for Everybody,freeCodeCamp,0.8615,Recommended because this resource has strong general quality and popularity signals.
+P004,popularity,5,R003,Excel Skills for Business,Coursera,0.846,Recommended because this resource has strong general quality and popularity signals.
+P005,popularity,1,R008,Applied Machine Learning in Python,Coursera,0.8865,Recommended because this resource has strong general quality and popularity signals.
+P005,popularity,2,R001,SQL for Data Analysis,Coursera,0.873,Recommended because this resource has strong general quality and popularity signals.
+P005,popularity,3,R025,Google Data Analytics Foundations,Coursera,0.8675,Recommended because this resource has strong general quality and popularity signals.
+P005,popularity,4,R005,Python Basics for Everybody,freeCodeCamp,0.8615,Recommended because this resource has strong general quality and popularity signals.
+P005,popularity,5,R003,Excel Skills for Business,Coursera,0.846,Recommended because this resource has strong general quality and popularity signals.
+P006,popularity,1,R008,Applied Machine Learning in Python,Coursera,0.8865,Recommended because this resource has strong general quality and popularity signals.
+P006,popularity,2,R001,SQL for Data Analysis,Coursera,0.873,Recommended because this resource has strong general quality and popularity signals.
+P006,popularity,3,R025,Google Data Analytics Foundations,Coursera,0.8675,Recommended because this resource has strong general quality and popularity signals.
+P006,popularity,4,R005,Python Basics for Everybody,freeCodeCamp,0.8615,Recommended because this resource has strong general quality and popularity signals.
+P006,popularity,5,R003,Excel Skills for Business,Coursera,0.846,Recommended because this resource has strong general quality and popularity signals.
+P007,popularity,1,R008,Applied Machine Learning in Python,Coursera,0.8865,Recommended because this resource has strong general quality and popularity signals.
+P007,popularity,2,R001,SQL for Data Analysis,Coursera,0.873,Recommended because this resource has strong general quality and popularity signals.
+P007,popularity,3,R025,Google Data Analytics Foundations,Coursera,0.8675,Recommended because this resource has strong general quality and popularity signals.
+P007,popularity,4,R005,Python Basics for Everybody,freeCodeCamp,0.8615,Recommended because this resource has strong general quality and popularity signals.
+P007,popularity,5,R003,Excel Skills for Business,Coursera,0.846,Recommended because this resource has strong general quality and popularity signals.
