@@ -1,71 +1,66 @@
-# Final Report Outline
+# Preliminary Project Report Outline
 
-## 1. Introduction
+## Front Matter
 
-- Problem: too many online learning resources and weak personalised guidance.
-- Aim: build an explainable career-aware educational recommender.
-- Scope: Data Analyst Machine Learning Engineer and Software Developer.
-- Contributions: dataset skill map learner profiles hybrid recommender evaluation.
+- University/programme heading.
+- Project title: Career-Aware Educational Content Recommendation System.
+- Author, student number, submission date, and supervisor.
+- Contents page using the required chapter order.
 
-## 2. Background And Related Work
+## Chapter 1: Introduction
+
+- Project concept and motivation.
+- Problem: computing learners face too many online resources and weak personalised guidance.
+- Aim and research questions.
+- Project template: data science recommender prototype.
+- Deliverables linked to objectives:
+  - curated learning-resource dataset
+  - pathway skill map
+  - learner profile representation
+  - recommendation models
+  - evaluation pipeline
+  - Streamlit feature prototype
+- Justification for how the objectives answer the aim.
+
+## Chapter 2: Literature Review
 
 - Educational recommender systems.
-- Content-based filtering.
-- Hybrid recommender systems.
+- Content-based recommendation.
+- Hybrid recommendation.
 - Explainable recommendation.
-- Learning analytics and skill-gap analysis.
-- Existing learning platforms and limitations.
+- Skill-gap and learning-path guidance.
+- Existing learning platforms and fixed career tracks.
+- Evaluation of how these sources motivate the project gap.
 
-## 3. Requirements And Design
+## Chapter 3: Project Design
 
-- Functional requirements:
-  - load curated resources
-  - represent learner profiles
-  - calculate skill gaps
-  - generate top-N recommendations
-  - explain recommendations
-  - compare models
-- Non-functional requirements:
-  - reproducible pipeline
-  - transparent scoring
-  - report-ready outputs
-- Data design:
-  - resources dataset
-  - skill map
-  - learner profiles
-  - relevance judgements
+- Domain and target users.
+- User/domain requirements.
+- Dataset and data model design.
+- Recommender architecture.
+- Important technologies and methods.
+- Work plan with milestones.
+- Testing and evaluation plan.
 
-## 4. Implementation
+## Chapter 4: Feature Prototype
 
-- Python project structure.
-- Data loading and preprocessing.
-- TF-IDF and cosine similarity.
-- Popularity baseline.
-- Content-based recommender.
-- Hybrid recommender.
-- Explanation generation.
-- Output generation.
+- Implemented prototype feature: explainable staged recommendation path.
+- What the Streamlit app demonstrates.
+- Current model results.
+- Short prototype evaluation.
+- Improvements planned before final submission.
+- 3-minute demonstration video plan.
 
-## 5. Evaluation
+## Appendices
 
-- Evaluation dataset and learner profiles.
-- Relevance judgement method.
-- Metrics: Precision@K Recall@K NDCG@K.
-- Results table.
-- Interpretation of baseline vs content-based vs hybrid.
-- Optional user feedback results.
+- Only include appendices that are cross-referenced from the main report.
+- Appendices included:
+  - dataset field summary
+  - skill-map method summary
+  - evaluation metric formulas
+  - prototype screenshots
 
-## 6. Discussion
+## References
 
-- Whether hybrid recommendation improves ranking quality.
-- Why content-based performs strongly.
-- Strengths of explainability.
-- Limitations of manual dataset and self-rated skills.
-- Ethical considerations around learner profiling and recommendation bias.
-
-## 7. Conclusion
-
-- Summary of what was built.
-- Key findings from evaluation.
-- Whether project objectives were met.
-- Future work.
+- Full publication details for every cited source.
+- Use a consistent citation style.

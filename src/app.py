@@ -28,7 +28,7 @@ from edu_recommender.models import Recommendation, RecommenderSuite  # noqa: E40
 DATA_DIR = ROOT / "data"
 OUTPUT_DIR = ROOT / "outputs"
 ASSET_DIR = ROOT / "assets"
-HERO_IMAGE = ASSET_DIR / "learning-path-hero.png"
+HERO_IMAGE = ASSET_DIR / "desktop-background.jpg"
 MODELS = ["popularity", "content_based", "hybrid"]
 TOP_K = 5
 
@@ -288,6 +288,94 @@ def apply_visual_theme() -> None:
             font-weight: 700;
         }
 
+        .fyp-white-table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--fyp-line);
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 10px 26px rgba(20, 20, 20, 0.05);
+            margin: 0.9rem 0 1.4rem;
+        }
+
+        .fyp-white-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: var(--fyp-ink);
+            background: #ffffff;
+            font-size: 0.92rem;
+        }
+
+        .fyp-white-table th {
+            background: #f7f7f3;
+            color: #2a2d2f;
+            font-weight: 800;
+            text-align: left;
+            border-bottom: 1px solid var(--fyp-line);
+            border-right: 1px solid var(--fyp-line);
+            padding: 0.75rem 0.85rem;
+            white-space: nowrap;
+        }
+
+        .fyp-white-table td {
+            background: #ffffff;
+            color: var(--fyp-ink);
+            border-bottom: 1px solid #ecefeb;
+            border-right: 1px solid #ecefeb;
+            padding: 0.75rem 0.85rem;
+            vertical-align: top;
+        }
+
+        .fyp-white-table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .fyp-white-table th:last-child,
+        .fyp-white-table td:last-child {
+            border-right: 0;
+        }
+
+        .fyp-white-table td.numeric {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+        }
+
+        .fyp-chart-panel {
+            padding: 1rem;
+            border: 1px solid var(--fyp-line);
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 0 10px 26px rgba(20, 20, 20, 0.05);
+            margin-bottom: 1.2rem;
+        }
+
+        .fyp-chart-panel svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .block-container div[data-testid="stSelectbox"] label p,
+        .block-container div[data-testid="stSlider"] label p,
+        .block-container div[data-testid="stWidgetLabel"] p,
+        .fyp-research-controls label p,
+        .fyp-research-controls div[data-testid="stWidgetLabel"] p {
+            color: var(--fyp-ink) !important;
+            font-weight: 800;
+        }
+
+        .block-container div[data-testid="stSlider"] [role="slider"],
+        .fyp-research-controls div[data-testid="stSlider"] [role="slider"] {
+            background-color: var(--fyp-muted) !important;
+            border-color: var(--fyp-muted) !important;
+            box-shadow: 0 0 0 0.15rem rgba(95, 99, 104, 0.14) !important;
+        }
+
+        .block-container div[data-testid="stSlider"] [data-baseweb="slider"] div,
+        .fyp-research-controls div[data-testid="stSlider"] [data-baseweb="slider"] div {
+            border-color: var(--fyp-muted) !important;
+        }
+
         .stButton button {
             border-radius: 8px;
             border: 1px solid rgba(122, 0, 60, 0.28);
@@ -410,8 +498,14 @@ def show_app_header() -> None:
 def image_data_uri(path: Path) -> str:
     if not path.exists():
         return ""
+    mime_type = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+    }.get(path.suffix.lower(), "application/octet-stream")
     encoded = base64.b64encode(path.read_bytes()).decode("ascii")
-    return f"data:image/png;base64,{encoded}"
+    return f"data:{mime_type};base64,{encoded}"
 
 
 def main() -> None:
@@ -979,20 +1073,24 @@ def show_research_view(
     skill_map: dict[str, dict[str, int]],
 ) -> None:
     st.subheader("Recommendation Model Comparison")
-    selected_model = st.selectbox(
-        "Recommendation model",
-        ["hybrid", "content_based", "popularity"],
-        help="Compare how different models rank the same learner profile.",
-    )
-    top_k = st.slider("Number of recommendations", min_value=3, max_value=10, value=TOP_K)
+    st.markdown('<div class="fyp-research-controls">', unsafe_allow_html=True)
+    controls_col, _ = st.columns([1, 2])
+    with controls_col:
+        selected_model = st.selectbox(
+            "Recommendation model",
+            ["hybrid", "content_based", "popularity"],
+            help="Compare how different models rank the same learner profile.",
+        )
+        top_k = st.slider("Number of recommendations", min_value=3, max_value=10, value=TOP_K)
+    st.markdown("</div>", unsafe_allow_html=True)
     show_recommendations(suite.recommend(profile, model=selected_model, top_k=top_k))
 
     metrics = calculate_metrics(suite, profiles, relevance)
-    st.dataframe(metrics, hide_index=True, width="stretch")
-    st.bar_chart(
-        {row["model"]: row["ndcg_at_k"] for row in metrics},
-        y_label="NDCG@5",
+    show_white_table(
+        metrics,
+        ["model", "k", "precision_at_k", "recall_at_k", "ndcg_at_k"],
     )
+    show_ndcg_chart(metrics)
 
     with st.expander("Dataset Summary"):
         st.write(f"Learning resources: {len(resources)}")
@@ -1003,7 +1101,10 @@ def show_research_view(
     with st.expander("View raw hybrid output"):
         hybrid_output = OUTPUT_DIR / "recommendations_hybrid.csv"
         if hybrid_output.exists():
-            st.dataframe(read_csv_rows(hybrid_output), hide_index=True, width="stretch")
+            show_white_table(
+                read_csv_rows(hybrid_output),
+                ["profile_id", "model", "rank", "resource_id", "title", "provider", "score", "explanation"],
+            )
         else:
             st.info("Run `src/run_pipeline.py` to generate output CSV files.")
 
@@ -1023,38 +1124,120 @@ def shorten_explanation(explanation: str) -> str:
 
 def show_recommendations(recommendations: list[Recommendation]) -> None:
     rows = [
-        """
-        <div class="fyp-research-row fyp-research-head">
-            <div>Rank</div>
-            <div>Resource</div>
-            <div>Provider</div>
-            <div>Score</div>
-            <div>Explanation</div>
-        </div>
-        """
+        (
+            '<div class="fyp-research-row fyp-research-head">'
+            "<div>Rank</div>"
+            "<div>Resource</div>"
+            "<div>Provider</div>"
+            "<div>Score</div>"
+            "<div>Explanation</div>"
+            "</div>"
+        )
     ]
     for recommendation in recommendations:
         rows.append(
-            f"""
-            <div class="fyp-research-row">
-                <div class="fyp-research-cell fyp-research-muted">#{recommendation.rank}</div>
-                <div class="fyp-research-cell"><strong>{html.escape(recommendation.title)}</strong></div>
-                <div class="fyp-research-cell">{html.escape(recommendation.provider)}</div>
-                <div class="fyp-research-cell fyp-research-muted">{recommendation.score:.3f}</div>
-                <div class="fyp-research-cell">{html.escape(recommendation.explanation)}</div>
-            </div>
-            """
+            (
+                '<div class="fyp-research-row">'
+                f'<div class="fyp-research-cell fyp-research-muted">#{recommendation.rank}</div>'
+                f'<div class="fyp-research-cell"><strong>{html.escape(recommendation.title)}</strong></div>'
+                f'<div class="fyp-research-cell">{html.escape(recommendation.provider)}</div>'
+                f'<div class="fyp-research-cell fyp-research-muted">{recommendation.score:.3f}</div>'
+                f'<div class="fyp-research-cell">{html.escape(recommendation.explanation)}</div>'
+                "</div>"
+            )
         )
     st.markdown(
-        f"""
-        <div class="fyp-research-panel">
-            <div class="fyp-research-table">
-                {''.join(rows)}
-            </div>
-        </div>
-        """,
+        (
+            '<div class="fyp-research-panel">'
+            '<div class="fyp-research-table">'
+            f"{''.join(rows)}"
+            "</div>"
+            "</div>"
+        ),
         unsafe_allow_html=True,
     )
+
+
+def show_white_table(rows: list[dict[str, object]], columns: list[str]) -> None:
+    if not rows:
+        st.info("No rows to display.")
+        return
+    header_html = "".join(f"<th>{html.escape(column)}</th>" for column in columns)
+    body_rows = []
+    numeric_columns = {"k", "rank", "score", "precision_at_k", "recall_at_k", "ndcg_at_k"}
+    for row in rows:
+        cells = []
+        for column in columns:
+            value = row.get(column, "")
+            cell_class = ' class="numeric"' if column in numeric_columns else ""
+            cells.append(f"<td{cell_class}>{html.escape(format_table_value(value))}</td>")
+        body_rows.append(f"<tr>{''.join(cells)}</tr>")
+    st.markdown(
+        (
+            '<div class="fyp-white-table-wrap">'
+            '<table class="fyp-white-table">'
+            f"<thead><tr>{header_html}</tr></thead>"
+            f"<tbody>{''.join(body_rows)}</tbody>"
+            "</table>"
+            "</div>"
+        ),
+        unsafe_allow_html=True,
+    )
+
+
+def format_table_value(value: object) -> str:
+    if isinstance(value, float):
+        return f"{value:.4f}"
+    return str(value)
+
+
+def show_ndcg_chart(metrics: list[dict[str, object]]) -> None:
+    chart_width = 840
+    chart_height = 320
+    plot_left = 78
+    plot_top = 32
+    plot_width = 700
+    plot_height = 220
+    baseline = plot_top + plot_height
+    max_value = 1.0
+    bar_width = 120
+    gap = (plot_width - (bar_width * len(metrics))) / max(len(metrics) - 1, 1)
+
+    grid_lines = []
+    for index in range(6):
+        value = index / 5
+        y = baseline - (value / max_value) * plot_height
+        grid_lines.append(
+            f'<line x1="{plot_left}" y1="{y:.1f}" x2="{plot_left + plot_width}" y2="{y:.1f}" stroke="#e2e6df" />'
+            f'<text x="42" y="{y + 4:.1f}" fill="#42474b" font-size="12">{value:.1f}</text>'
+        )
+
+    bars = []
+    for index, row in enumerate(metrics):
+        value = float(row["ndcg_at_k"])
+        x = plot_left + index * (bar_width + gap)
+        bar_height = min(value / max_value, 1.0) * plot_height
+        y = baseline - bar_height
+        label = html.escape(str(row["model"]))
+        bars.append(
+            f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_width}" height="{bar_height:.1f}" rx="3" fill="#2f80ed" />'
+            f'<text x="{x + bar_width / 2:.1f}" y="{y - 8:.1f}" fill="#171717" font-size="13" text-anchor="middle" font-weight="700">{value:.4f}</text>'
+            f'<text x="{x + bar_width / 2:.1f}" y="{baseline + 28}" fill="#171717" font-size="12" text-anchor="middle">{label}</text>'
+        )
+
+    chart = (
+        '<div class="fyp-chart-panel">'
+        f'<svg viewBox="0 0 {chart_width} {chart_height}" role="img" aria-label="NDCG at 5 comparison chart">'
+        '<rect x="0" y="0" width="840" height="320" fill="#ffffff" />'
+        '<text x="78" y="20" fill="#171717" font-size="15" font-weight="800">NDCG@5 comparison</text>'
+        '<text x="18" y="155" fill="#171717" font-size="13" font-weight="700" transform="rotate(-90 18 155)">NDCG@5</text>'
+        f"{''.join(grid_lines)}"
+        f'<line x1="{plot_left}" y1="{baseline}" x2="{plot_left + plot_width}" y2="{baseline}" stroke="#aeb7ae" />'
+        f"{''.join(bars)}"
+        "</svg>"
+        "</div>"
+    )
+    st.markdown(chart, unsafe_allow_html=True)
 
 
 def calculate_metrics(suite: RecommenderSuite, profiles, relevance):

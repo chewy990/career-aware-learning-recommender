@@ -4,24 +4,9 @@
 
 Career-aware educational content recommendation system for computing learners.
 
-Project folder:
+Project folder: `C:\Users\Admin\Documents\mods\FYP`
 
-`C:\Users\Admin\Documents\mods\FYP`
-
-Keep all project files in this folder.
-
-## Goal
-
-Build an FYP data science recommender prototype, not a full LMS.
-
-It should recommend precise learning paths based on:
-
-- career pathway
-- current skill levels
-- skill gaps
-- completed topics
-- preferred difficulty
-- learning resource metadata
+Build an FYP data science recommender prototype, not a full LMS. The system recommends precise learning paths from career pathway, current skills, skill gaps, completed topics, preferred difficulty, and resource metadata.
 
 Target pathways:
 
@@ -29,7 +14,7 @@ Target pathways:
 - Machine Learning Engineer
 - Software Developer
 
-Main idea: avoid rigid full career tracks. Recommend “learn just enough”, start practical work early, then deepen later.
+Core idea: avoid rigid full career tracks. Recommend "learn just enough", start practical work early, then deepen later.
 
 ## Key Files
 
@@ -37,15 +22,24 @@ Main idea: avoid rigid full career tracks. Recommend “learn just enough”, st
 - `src/run_pipeline.py` - pipeline/evaluation runner
 - `src/edu_recommender/models.py` - recommender logic
 - `src/edu_recommender/evaluation.py` - Precision@K, Recall@K, NDCG@K
-- `data/resources.csv` - learning resources
-- `data/skill_map.csv` - pathway skill map
-- `data/learner_profiles.csv` - sample learners
-- `data/relevance_judgements.csv` - evaluation labels
-- `assets/learning-path-hero.png` - local header image
-- `docs/` - report and methodology docs
-- `outputs/` - generated results
+- `data/*.csv` - resources, skill map, learner profiles, relevance labels, skill sources
+- `assets/desktop-background.jpg` - current app banner image
+- `docs/report_draft.md` - preliminary report draft
+- `docs/appendices/` - organised appendices
+- `docs/appendices/screenshots/` - Appendix D screenshots
+- `outputs/` - generated pipeline results
 
-## Current App Behavior
+## Current Report Notes
+
+- Preliminary report must have exactly four chapters: Introduction, Literature Review, Project Design, Feature Prototype.
+- Appendices and References are present but not numbered as chapters.
+- Contents are simple bullets, not linked anchors.
+- Appendices A-D are cross-referenced in the main text.
+- Current references use open sources where possible.
+- Word count is safely below the strict limits.
+- Remaining required submission item: 3-5 minute MP4 prototype video.
+
+## Current App Rules
 
 Learning path stages:
 
@@ -54,26 +48,18 @@ Learning path stages:
 3. `3. Deepen later`
 4. `Optional structured tracks`
 
-Important UX rules:
+UX rules:
 
-- Show all recommendations in each expander.
-- Checking a resource must not reorder recommendations.
-- Use checkboxes beside each resource with label `Completed`.
+- Checking `Completed` must not reorder recommendations.
 - Keep `Reset progress`.
 - Do not show a progress table.
 - Show skill increases as `SQL 1 > 2`.
-- Optional readings/videos were removed.
-- Broad tracks should only appear as optional structured references.
+- Broad tracks only appear as optional structured references.
+- Research View explanations use wrapped HTML rows.
+- Research View metrics table, NDCG chart, and raw hybrid output use a white theme.
+- Research View selector/slider labels should be black; slider is narrow and grey.
 
-## Current UI Notes
-
-- Custom visual theme is in `apply_visual_theme()` in `src/app.py`.
-- Header uses `assets/learning-path-hero.png`.
-- Tabs use red/maroon text for visibility.
-- Research View recommendation explanations use wrapped HTML rows, not a cramped dataframe.
-- Checkbox style was reverted to the previous accent style after the black-border-only experiment.
-
-## Current Models
+## Models And Metrics
 
 Implemented models:
 
@@ -81,15 +67,7 @@ Implemented models:
 - content-based recommender
 - hybrid recommender
 
-Hybrid model considers:
-
-- career/pathway relevance
-- skill gap match
-- difficulty match
-- prerequisite match
-- resource quality
-
-Latest known metrics:
+Latest metrics:
 
 - popularity: `Precision@5=0.2571`, `Recall@5=0.0574`, `NDCG@5=0.2524`
 - content_based: `Precision@5=0.8571`, `Recall@5=0.2044`, `NDCG@5=0.8668`
@@ -97,9 +75,15 @@ Latest known metrics:
 
 ## Run
 
-Use bundled Python if normal `python` is unavailable:
+Bundled Python:
 
 `C:\Users\Admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe`
+
+Install requirements if needed:
+
+```powershell
+& "C:\Users\Admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m pip install -r requirements.txt
+```
 
 Run app:
 
@@ -107,9 +91,7 @@ Run app:
 & "C:\Users\Admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m streamlit run src\app.py
 ```
 
-App URL:
-
-`http://localhost:8501/`
+App URL: `http://localhost:8501/`
 
 Run pipeline:
 
@@ -117,27 +99,24 @@ Run pipeline:
 & "C:\Users\Admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" src\run_pipeline.py
 ```
 
-## Test Before Finalizing
-
-Check:
+## Check Before Finalizing
 
 - app loads
 - both tabs work
 - sample/custom profiles work
 - each path stage has content
-- checking a resource does not reorder recommendations
+- completing a resource does not reorder recommendations
 - reset clears progress
-- Research View remains readable
-- pipeline still runs
+- Research View remains readable and white themed
+- pipeline runs
+- report still has exactly four chapters and remains under word limits
+- appendices remain cross-referenced
 
 ## Git Note
 
-Previous push was blocked because Git author identity was not configured.
-
-Needed before commit:
+Before committing:
 
 ```powershell
 git config user.name "Jaslyn Chan"
 git config user.email "chewy990@users.noreply.github.com"
 ```
-
