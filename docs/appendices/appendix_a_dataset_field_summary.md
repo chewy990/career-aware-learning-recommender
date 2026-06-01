@@ -2,11 +2,27 @@
 
 This appendix summarises the structured datasets used by the recommender prototype.
 
+## A.0 Data Provenance Summary
+
+The CSV files are project-created prototype datasets. They were not scraped automatically from a single platform and they are not real learner activity logs. The data was assembled manually from the project proposal, public learning-platform information, career-skill references, and simulated learner scenarios.
+
+| Dataset | Where the data comes from |
+|---|---|
+| `data/resources.csv` | Manually curated learning-resource entries based on publicly available platform/resource information, then normalised into common fields for the prototype |
+| `data/skill_map.csv` | Manually defined pathway skill weights informed by the project proposal, learning-platform pathways, and career-skill references |
+| `data/skill_sources.csv` | Evidence notes recording which project documents, platform pages, and career-skill references support the skill map |
+| `data/learner_profiles.csv` | Simulated learner profiles created to test the recommender with different pathways and skill gaps |
+| `data/relevance_judgements.csv` | Curated prototype relevance labels used to compare ranking models |
+
+This means the evaluation is suitable for demonstrating feasibility and comparing prototype models, but it should not be presented as evidence from real learners or large-scale platform usage.
+
 ## A.1 Resource Dataset
 
 Source file: `data/resources.csv`
 
 Purpose: stores the learning resources that can be recommended to learners.
+
+Origin: manually curated from public learning-resource information and then converted into a consistent metadata table. Fields such as quality score, popularity score, and pathway relevance are prototype scoring fields, not official ratings from the providers.
 
 | Field | Meaning |
 |---|---|
@@ -33,6 +49,8 @@ Source file: `data/skill_map.csv`
 
 Purpose: stores how important each skill is for each target career pathway.
 
+Origin: manually created for the prototype using the project proposal, common role-oriented learning pathways, and supporting career-skill references.
+
 | Field | Meaning |
 |---|---|
 | `skill` | Skill name used by learner profiles and resources |
@@ -55,6 +73,8 @@ Source file: `data/skill_sources.csv`
 
 Purpose: records the sources used to justify the pathway skills and skill-map weights.
 
+Origin: project-created evidence log. It records the documents and public sources used to support the skill choices.
+
 | Field | Meaning |
 |---|---|
 | `source_id` | Unique source identifier |
@@ -70,6 +90,8 @@ Purpose: records the sources used to justify the pathway skills and skill-map we
 Source file: `data/learner_profiles.csv`
 
 Purpose: stores sample learner profiles for testing and demonstrating the recommender.
+
+Origin: simulated learner profiles created for prototype testing. They represent plausible learner situations rather than real student records.
 
 | Field | Meaning |
 |---|---|
@@ -88,6 +110,8 @@ Purpose: stores sample learner profiles for testing and demonstrating the recomm
 Source file: `data/relevance_judgements.csv`
 
 Purpose: stores prototype relevance labels used for evaluation.
+
+Origin: manually curated labels based on whether resources address each sample learner's target pathway and weak skills.
 
 | Field | Meaning |
 |---|---|

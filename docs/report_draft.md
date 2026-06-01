@@ -128,9 +128,11 @@ The current datasets are stored as CSV files.
 | `data/learner_profiles.csv` | Seven sample learner profiles |
 | `data/relevance_judgements.csv` | Curated relevance labels for evaluation |
 
+The datasets are prototype datasets created for this project rather than scraped platform data or real learner behaviour logs. The resource dataset was manually curated from publicly available learning-platform information and then normalised into a consistent CSV structure. The skill map was informed by the project proposal, role-oriented learning pathways, and career-skill references recorded in `data/skill_sources.csv`. The learner profiles and relevance judgements are simulated/curated examples used to test whether the recommender works as a feasible prototype. This provenance is important because the evaluation shows prototype ranking quality, not large-scale evidence of real learner outcomes.
+
 Resource metadata includes title, provider, topic, covered skills, difficulty level, duration, format, prerequisites, cost, popularity score, quality score, pathway relevance, and description. Learner profiles include target pathway, current skill levels, completed topics, weak skills, preferred difficulty, maximum duration, and preferred format. A summary of the dataset fields is provided in Appendix A.
 
-The pathway skill map uses a 0-3 scale informed by learning-platform pathways and career-skill sources such as SkillsFuture Singapore (n.d.).
+The pathway skill map uses a 0-3 scale informed by learning-platform pathways and career-skill sources such as IMDA's Skills Framework for Infocomm Technology (Infocomm Media Development Authority, n.d.).
 
 | Value | Meaning |
 |---|---|
@@ -288,5 +290,5 @@ See `docs/appendices/appendix_d_prototype_screenshots.md`. Screenshot image file
 - Manouselis, N., Drachsler, H., Vuorikari, R., Hummel, H. and Koper, R. (2010). "Recommender Systems in Technology Enhanced Learning", in *Recommender Systems Handbook*, pp. 387-415. Open preliminary version. Available at: `https://research.ou.nl/ws/files/938821/RecSys_Handbook-preliminary_version.pdf` (Accessed: 29 May 2026).
 - Salau, L., Hamada, M., Prasad, R., Hassan, M., Mahendran, A. and Watanobe, Y. (2022). "State-of-the-Art Survey on Deep Learning-Based Recommender Systems for E-Learning", *Applied Sciences*, 12(23), 11996. Available at: `https://www.mdpi.com/2076-3417/12/23/11996` (Accessed: 29 May 2026).
 - Scikit-learn. (2019). *User guide*. Available at: `https://scikit-learn.org/stable/user_guide.html` (Accessed: 12 May 2026).
-- SkillsFuture Singapore. (n.d.). *Skills Framework for Infocomm Technology*. Available at: `https://www.skillsfuture.gov.sg/skills-framework/ict` (Accessed: 29 May 2026).
+- Infocomm Media Development Authority. (n.d.). *Skills Framework*. Available at: `https://www.imda.gov.sg/resources/skills-framework` (Accessed: 29 May 2026).
 - Zhang, Y. and Chen, X. (2020). "Explainable Recommendation: A Survey and New Perspectives", *Foundations and Trends in Information Retrieval*, 14(1), pp. 1-101. Available at: `https://arxiv.org/abs/1804.11192` (Accessed: 29 May 2026).
