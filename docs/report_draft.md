@@ -8,28 +8,39 @@
 
 # Career-Aware Educational Content Recommendation System
 
-Author: Jaslyn Chan Yu Xin
-
-Student Number: 240662387
-
-Date of Submission: 29 May 2026
-
-Supervisor: Chew Jee Loong
+| Project Detail | Information |
+|---|---|
+| Author | Jaslyn Chan Yu Xin |
+| Student Number | 240662387 |
+| Date of Submission | 29 May 2026 |
+| Supervisor | Chew Jee Loong |
 
 ## Contents
 
-- Chapter 1: Introduction
-- Chapter 2: Literature Review
-- Chapter 3: Project Design
-- Chapter 4: Feature Prototype
-- Appendices
-- References
+- [Chapter 1 Introduction](#chapter-1-introduction)
+  - [1.1 Aim](#11-aim)
+  - [1.2 Research Questions](#12-research-questions)
+  - [1.3 Objectives And Deliverables](#13-objectives-and-deliverables)
+- [Chapter 2 Literature Review](#chapter-2-literature-review)
+- [Chapter 3 Project Design](#chapter-3-project-design)
+  - [3.1 Domain And Users](#31-domain-and-users)
+  - [3.2 User And Domain Requirements](#32-user-and-domain-requirements)
+  - [3.3 Data Design](#33-data-design)
+  - [3.4 Recommender Structure](#34-recommender-structure)
+  - [3.5 Technologies And Methods](#35-technologies-and-methods)
+  - [3.6 Work Plan](#36-work-plan)
+  - [3.7 Testing And Evaluation Plan](#37-testing-and-evaluation-plan)
+- [Chapter 4 Feature Prototype](#chapter-4-feature-prototype)
+  - [4.1 Current Prototype Results](#41-current-prototype-results)
+  - [4.2 Prototype Evaluation](#42-prototype-evaluation)
+- [Appendices](#appendices)
+- [References](#references)
 
-# Chapter 1: Introduction
+# Chapter 1 Introduction
 
 Computing learners can access large numbers of online courses, tutorials, projects, and career pathways from platforms such as Coursera, DataCamp, and freeCodeCamp (Coursera, n.d.; DataCamp, 2022; freeCodeCamp, 2014). This abundance is useful, but it can also make self-directed learning difficult. A learner who wants to become a Data Analyst, Machine Learning Engineer, or Software Developer may not need a full fixed career track immediately. They may need a precise next step that addresses a current skill gap, fits their present ability, and helps them start practical work early.
 
-This project develops a career-aware educational content recommendation system for computing learners. The system uses a learner's target pathway, current skill levels, weak skills, completed topics, preferred difficulty, and learning-resource metadata to recommend a staged learning path. The intended project template is a data science recommender prototype rather than a full learning management system. The project focuses on recommendation logic, evaluation, and an explainable research demo.
+This project develops a career-aware educational content recommendation system for computing learners. The system uses a learner's target pathway, current skill levels, weak skills, completed topics, preferred difficulty, and learning-resource metadata to recommend a staged learning path. The project follows the template `1.1 Project Idea 1: Data-Driven Personalised Educational Content Recommendation`, and implements it as a data science recommender prototype rather than a full learning management system. The project focuses on recommendation logic, evaluation, and an explainable research demo.
 
 The main idea is to avoid rigid full career tracks. Instead, the recommender supports a "learn just enough, start practical work, deepen later" approach. For example, an aspiring Data Analyst who already knows basic Python and Excel but has weak SQL and dashboard skills should receive targeted SQL, data cleaning, and visualisation resources before being shown broad optional career tracks.
 
@@ -58,11 +69,21 @@ The objectives and related deliverables are:
 | Implement recommendation models | popularity, content-based, and hybrid models in `src/edu_recommender/models.py` |
 | Evaluate ranking quality | Precision@K, Recall@K, and NDCG@K in `src/edu_recommender/evaluation.py` |
 | Produce reproducible outputs | `src/run_pipeline.py` and files in `outputs/` |
-| Demonstrate the feature prototype | Streamlit app in `src/app.py` |
+| Develop an interactive prototype interface | Streamlit app in `src/app.py` |
 
 These objectives support the aim because they cover the full recommender workflow: data preparation, learner modelling, ranking, explanation, evaluation, and prototype demonstration. The work remains intentionally narrower than a commercial learning platform so that the data science problem stays central.
 
-# Chapter 2: Literature Review
+The data preparation part is important because the recommender depends on structured learning-resource metadata rather than unorganised course lists. The resources dataset records the provider, topic, skills, prerequisites, difficulty, format, duration, quality, popularity, and pathway relevance of each resource. This allows the project to compare resources using consistent fields and makes the later recommendations easier to explain.
+
+Career skill mapping and learner profiling support the project's focus on personalisation. The skill map defines what matters for each target pathway, while the learner profile records the learner's current ability, weak skills, completed topics, and preferences. Comparing these two sources allows the system to identify practical skill gaps instead of assuming that every learner should follow the same fixed route.
+
+The recommendation model's purpose is to test whether a hybrid approach can produce better next-step recommendations than simpler alternatives. The popularity baseline shows what happens when general popularity and quality dominate. The content-based model tests whether resource metadata can be matched to learner needs. The hybrid model then adds pathway relevance, skill gaps, difficulty, prerequisites, and quality signals so that the ranking is more closely aligned with the project aim.
+
+Evaluation ensures that the project is not only a visual prototype. Precision@K, Recall@K, and NDCG@K are used to compare the ranking quality of the models against curated relevance judgements. This gives the report measurable evidence about whether the proposed hybrid recommender improves on the baseline approaches.
+
+Finally, the reproducible pipeline and prototype interface help connect the recommender model to its intended use case. The pipeline produces repeatable recommendation and evaluation outputs, while the Streamlit app presents the ranked resources, staged learning path, and explanations in a form that a learner or evaluator can inspect. Together, these deliverables support the research questions by showing how the data science model can be evaluated and translated into an understandable learner-facing experience.
+
+# Chapter 2 Literature Review
 
 Educational recommender systems are designed to reduce information overload by matching learning materials with learner context (Manouselis et al., 2010; Salau et al., 2022). This matters in online computing education because learners often face many possible courses, tutorials, projects, and career tracks at the same time. Educational recommendation is also different from recommending films or products. A learning resource should not only look useful; it should also fit the learner's current knowledge, career goal, prerequisites, and next sensible step. For example, an advanced machine learning course may be popular, but it may not help a learner who first needs Python, statistics, or model-evaluation foundations.
 
@@ -80,9 +101,21 @@ The project is also influenced by explainable recommendation. Zhang and Chen (20
 
 Existing learning platforms and career tracks also motivate the project. Coursera professional certificates and DataCamp career tracks provide useful structure for learners who want a guided route (Coursera, n.d.; DataCamp, 2022). freeCodeCamp also provides broad, accessible programming pathways and resources (freeCodeCamp, 2014). These platforms are useful sources for understanding common learning pathways because they are widely used and publish role-oriented curricula. However, their pathways are often fixed and broad. A fixed sequence may ask a learner to complete many topics before doing practical work, even if the learner already has some relevant knowledge.
 
+![Coursera Professional Certificates screenshot](images/coursera-professional-certificates.png)
+
+Figure 2.1: Coursera Professional Certificates as an example of a structured career-oriented learning pathway. This type of platform is useful because it gives learners a recognisable route, but it also shows why a smaller recommender can add value by selecting the most relevant next step for a learner's current skill gaps.
+
+![DataCamp Career Tracks screenshot](images/datacamp-career-tracks.png)
+
+Figure 2.2: DataCamp Career Tracks as an example of role-based learning paths with multiple courses grouped into a broader sequence. The project uses this kind of structure as background evidence for career skills, while avoiding the assumption that every learner needs to complete a full track before starting practical work.
+
+![freeCodeCamp Learn screenshot](images/freecodecamp-learn.png)
+
+Figure 2.3: freeCodeCamp Learn as an example of a broad self-directed programming curriculum. The platform demonstrates the value of accessible structured learning, but it also highlights the information-overload problem for learners who need help choosing the most relevant next resource.
+
 This creates an opportunity for a narrower recommender. The aim is not to replace structured learning platforms, but to use them as evidence and optional references while focusing on personalised next steps. Overall, the literature and platform examples support the project in three ways. They show that recommendation is useful in education because learners face information overload. They justify content-based and hybrid approaches for a prototype without large interaction logs. They also point to the main gap this project addresses: transparent, career-aware, skill-gap-based recommendations that are more targeted than a full career track and more educationally meaningful than popularity-based ranking.
 
-# Chapter 3: Project Design
+# Chapter 3 Project Design
 
 ## 3.1 Domain And Users
 
@@ -146,6 +179,10 @@ Skill gaps are calculated by comparing the learner's current skill level with th
 ## 3.4 Recommender Structure
 
 The system compares three models.
+
+![Career-aware recommender architecture diagram](images/recommender-architecture.svg)
+
+Figure 3.1: Architecture of the career-aware recommender prototype, showing how project datasets flow through the recommender logic into the learner view, research view, and report-ready outputs. The editable draw.io source is stored in `docs/diagrams/recommender-architecture.drawio`.
 
 The popularity baseline ranks resources using general quality and popularity signals only:
 
@@ -212,11 +249,15 @@ The prototype will also be tested through functional checks:
 
 The evaluation results will be interpreted as prototype evidence rather than large-scale proof of learning outcomes. The current labels are curated and should be strengthened later with learner or supervisor feedback.
 
-# Chapter 4: Feature Prototype
+# Chapter 4 Feature Prototype
 
 The feature prototype implements one of the most important technical features of the project: an explainable staged learning path generated from career-aware recommendations. It is implemented as a Streamlit app in `src/app.py`.
 
 The prototype has two views. The Learner View allows a sample learner profile or a custom learner profile to be selected. It shows profile details, skill gaps, a staged path, recommendation reasons, resource metadata, completed-resource checkboxes, and simple skill increases such as `SQL 1 > 2`. The Research View shows ranked outputs and model comparison metrics for the FYP evaluation. Prototype screenshots are included in Appendix D.
+
+![Learner View screenshot](appendices/screenshots/learner-view.png)
+
+Figure 4.1: Learner View showing the selected profile, skill context, progress area, and staged learning path.
 
 The staged path has four sections:
 
@@ -227,7 +268,19 @@ The staged path has four sections:
 
 The design separates precise recommendations from broad tracks. Broad career tracks can still appear, but only as optional structured references. This keeps the project aligned with the goal of recommending "just enough" to begin practical work and then deepen later.
 
+![Start a practical project screenshot](appendices/screenshots/practical-project.png)
+
+Figure 4.2: The practical project stage, where the learner is encouraged to apply enough foundational knowledge before deepening later.
+
 The current feature prototype also preserves the recommendation order while a learner marks resources as completed. Completed resources are marked visually, and reset clears progress. This behaviour is important because immediate reordering after each checkbox click could make the recommendation path feel unstable.
+
+![Progress update screenshot](appendices/screenshots/progress-update.png)
+
+Figure 4.3: Completed-resource interaction showing learner progress without reordering the recommendation list.
+
+![Custom learner sidebar screenshot](appendices/screenshots/custom-learner-sidebar.png)
+
+Figure 4.4: Custom learner controls for pathway, difficulty, preferred format, and current skill levels.
 
 ## 4.1 Current Prototype Results
 
@@ -242,6 +295,10 @@ The current evaluation results at K=5 are:
 The popularity baseline performs poorly because generally popular resources do not necessarily match a specific pathway or weak skill. The content-based recommender improves substantially because resource metadata overlaps with learner skill and topic needs. The hybrid model produces the strongest current ranking by adding structured pathway, skill-gap, difficulty, prerequisite, and quality signals to the content match.
 
 The recall values are lower than precision because a top-five recommendation list cannot retrieve every resource that may be relevant in the curated label set. This is acceptable for the current prototype use case, where concise high-quality next steps are preferred over a long exhaustive list.
+
+![Research View model comparison screenshot](appendices/screenshots/research-view-model-comparisons.png)
+
+Figure 4.5: Research View model comparison showing how the popularity, content-based, and hybrid recommenders perform on the current evaluation metrics.
 
 ## 4.2 Prototype Evaluation
 

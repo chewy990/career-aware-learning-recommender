@@ -12,7 +12,7 @@ Shows the main learner-facing view with the selected profile, progress area, and
 
 Shows the project-focused stage of the learning path.
 
-![Start a practical project screenshot](screenshots/start-own-project.png)
+![Start a practical project screenshot](screenshots/practical-project.png)
 
 ## Figure D.3: Progress Update
 

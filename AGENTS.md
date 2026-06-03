@@ -21,18 +21,19 @@ Core idea: recommend "learn just enough", start practical work early, then deepe
 - `data/*.csv` - curated prototype datasets
 - `assets/desktop-background.jpg` - app banner
 - `docs/report_draft.md` - preliminary report source
-- `docs/CM3070_Preliminary_Project_Report_Jaslyn_Chan.*` - exported PDF/DOCX/RTF
+- `docs/prelim_report_draft2_jaslyn.pdf` - current exported report draft
 - `docs/appendices/` - appendices A-D and screenshots
 - `README.txt`, `docs/appendices/README.txt` - plain-text folder notes
 
 ## Current Submission State
 
-- Preliminary report and MP4 demo have been submitted.
+- Current report source is `docs/report_draft.md`; keep Markdown as the source of truth.
+- Current polished draft PDF is `docs/prelim_report_draft2_jaslyn.pdf`.
 - Report has exactly four chapters: Introduction, Literature Review, Project Design, Feature Prototype.
 - Appendices and References are not numbered as chapters.
 - Appendices A-D are cross-referenced; Appendix E was removed.
 - Dataset provenance is documented in Chapter 3 and Appendix A.
-- Broken SkillsFuture ICT reference was replaced with official IMDA Skills Framework link.
+- Report draft includes a page-numbered TOC, expanded objectives, platform screenshots, architecture diagram, prototype screenshots, and bottom page numbers.
 
 ## App Notes
 
@@ -68,6 +69,10 @@ Run pipeline:
 ```powershell
 & "C:\Users\Admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" src\run_pipeline.py
 ```
+
+## Notifications
+
+Do not run Telegram completion notifications. The Telegram notifier has been removed from this machine.
 
 ## Before Finalizing
 
