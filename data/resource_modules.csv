@@ -1,0 +1,21 @@
+module_id,parent_resource_id,module_title,provider,skills,difficulty_level,duration_hours,source_url,date_checked
+M001,R001,Filtering Data with a WHERE Clause,Coursera,sql,1,1.0,https://assets.ctfassets.net/82ripq7fjls2/6gd5BNLXKoxDCn5T5Wlnk3/ae5927c1b569226109012a3d051847fb/sql-for-data-analysis-beginner.pdf,2026-06-08
+M002,R001,Aggregation Functions,Coursera,sql;data_cleaning,1,1.0,https://assets.ctfassets.net/82ripq7fjls2/6gd5BNLXKoxDCn5T5Wlnk3/ae5927c1b569226109012a3d051847fb/sql-for-data-analysis-beginner.pdf,2026-06-08
+M003,R001,Types of Joins,Coursera,sql,1,1.0,https://assets.ctfassets.net/82ripq7fjls2/6gd5BNLXKoxDCn5T5Wlnk3/ae5927c1b569226109012a3d051847fb/sql-for-data-analysis-beginner.pdf,2026-06-08
+M004,R002,Planning the SELECT Statement,DataCamp,sql,2,0.5,https://www.datacamp.com/courses/reporting-in-sql,2026-06-08
+M005,R002,Combining Tables,DataCamp,sql;databases,2,0.75,https://www.datacamp.com/courses/reporting-in-sql,2026-06-08
+M006,R002,Filtering with a JOIN,DataCamp,sql;databases,2,0.75,https://www.datacamp.com/courses/reporting-in-sql,2026-06-08
+M007,R003,Dashboard,Coursera,excel;dashboards,1,1.0,https://www.coursera.org/learn/excel-intermediate-1,2026-06-08
+M008,R004,Dashboard Layouts,edX,data_visualisation;dashboards,1,1.0,https://www.datacamp.com/resources/webinars/dashboard-design-in-power-bi,2026-06-08
+M009,R004,Interactive Elements and Slicers,edX,data_visualisation;dashboards,1,1.0,https://www.datacamp.com/resources/webinars/dashboard-design-in-power-bi,2026-06-08
+M010,R017,Create Charts with Python,DataCamp,python;data_visualisation,2,1.0,https://www.datacamp.com/courses/data-visualization-with-python,2026-06-08
+M011,R017,Build Dashboard-Style Visualisations,DataCamp,python;data_visualisation;dashboards,2,1.0,https://www.datacamp.com/courses/data-visualization-with-python,2026-06-08
+M012,R021,Clean Messy Data,University Open Course,data_cleaning,1,1.0,https://openrefine.org/docs,2026-06-08
+M013,R025,SQL and Data Extraction,Coursera,sql;data_cleaning,1,1.0,https://www.coursera.org/professional-certificates/google-data-analytics,2026-06-08
+M014,R025,Data Visualisation and Communication,Coursera,data_visualisation,1,1.0,https://www.coursera.org/professional-certificates/google-data-analytics,2026-06-08
+M015,R028,Design the Dashboard Layout,DataCamp,dashboards;data_visualisation,1,1.0,https://www.datacamp.com/tutorial/power-bi-dashboard-tutorial,2026-06-08
+M016,R028,Add Filters and Slicers,DataCamp,dashboards;data_visualisation,1,0.75,https://www.datacamp.com/tutorial/power-bi-dashboard-tutorial,2026-06-08
+M017,R028,Pin Visuals to a Dashboard,DataCamp,dashboards,1,0.75,https://www.datacamp.com/tutorial/power-bi-dashboard-tutorial,2026-06-08
+M018,R031,Hypothesis Testing for Business Decisions,edX,statistics,2,1.0,https://www.edx.org/learn/statistics,2026-06-08
+M019,R032,Chart Selection for Data Stories,Coursera,data_visualisation;dashboards,1,1.0,https://www.coursera.org/learn/datavisualization,2026-06-08
+M020,R033,Cleaning Data with SQL Transformations,University Open Course,sql;data_cleaning,2,1.0,https://www.w3schools.com/sql/sql_update.asp,2026-06-08

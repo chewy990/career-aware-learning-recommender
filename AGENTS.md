@@ -19,6 +19,7 @@ Core idea: recommend "learn just enough", start practical work early, then deepe
 - `src/edu_recommender/models.py` - popularity, content-based, and hybrid recommenders
 - `src/edu_recommender/evaluation.py` - Precision@K, Recall@K, NDCG@K
 - `data/*.csv` - curated prototype datasets
+- `data/resource_modules.csv` - verified selected-module metadata with source URL and date checked
 - `assets/desktop-background.jpg` - app banner
 - `docs/report_draft.md` - preliminary report source
 - `docs/prelim_report_draft2_jaslyn.pdf` - current exported report draft
@@ -38,9 +39,16 @@ Core idea: recommend "learn just enough", start practical work early, then deepe
 ## App Notes
 
 - Learning path stages: `1. Learn just enough`, `2. Start a practical project`, `3. Deepen later`, `Optional structured tracks`.
-- Checking `Completed` should not reorder recommendations.
+- Learner View is module-first where verified module data exists: show the selected module title as the main item and a small source line such as `From: DataCamp - SQL for Data Analysis`.
+- Existing `format=module` resources should show cleaner module titles and `From: Provider`.
+- Completion updates skills from the selected module when available; otherwise it falls back to the full resource skills.
+- Checking `Completed` should not reorder recommendations, swap the displayed module, leak state between profiles, or collapse the completed stage.
 - Keep `Reset progress`; do not show a progress table.
-- Show skill increases as `SQL 1 > 2`.
+- Keep a compact Progress summary above the learning path; keep the full Completed resources expander below the path.
+- Show profile starting topics as `Completed topics: ...`.
+- Skill labels shown to learners must be human-readable, e.g. `Data visualisation`, `Data cleaning`, `Dashboarding`, `SQL`, not raw IDs like `data_visualisation`.
+- Skill increases should use level labels, not numeric arrows: `Not started`, `Basic`, `Working knowledge`, `Confident`.
+- Level labels are inline colored text: Not started orange `#FF6B00`, Basic readable yellow, Working knowledge readable green, Confident purple `#AA00FF` with `*`.
 - Broad tracks only appear as optional structured references.
 - Research View explanations use wrapped HTML rows.
 - Research View metrics table, NDCG chart, and raw hybrid output use a white theme.

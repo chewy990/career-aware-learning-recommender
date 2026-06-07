@@ -24,6 +24,19 @@ class Resource:
 
 
 @dataclass(frozen=True)
+class ResourceModule:
+    module_id: str
+    parent_resource_id: str
+    module_title: str
+    provider: str
+    skills: set[str]
+    difficulty_level: int
+    duration_hours: float
+    source_url: str
+    date_checked: str
+
+
+@dataclass(frozen=True)
 class LearnerProfile:
     profile_id: str
     name: str
@@ -63,6 +76,26 @@ def read_resources(path: Path) -> list[Resource]:
             )
         )
     return resources
+
+
+def read_resource_modules(path: Path) -> list[ResourceModule]:
+    if not path.exists():
+        return []
+    rows = _read_csv(path)
+    return [
+        ResourceModule(
+            module_id=row["module_id"],
+            parent_resource_id=row["parent_resource_id"],
+            module_title=row["module_title"],
+            provider=row["provider"],
+            skills=_parse_set(row["skills"]),
+            difficulty_level=int(row["difficulty_level"]),
+            duration_hours=float(row["duration_hours"]),
+            source_url=row["source_url"],
+            date_checked=row["date_checked"],
+        )
+        for row in rows
+    ]
 
 
 def read_skill_map(path: Path) -> dict[str, dict[str, int]]:
