@@ -42,14 +42,19 @@ Core idea: recommend "learn just enough", start practical work early, then deepe
 - Learner View is module-first where verified module data exists: show the selected module title as the main item and a small source line such as `From: DataCamp - SQL for Data Analysis`.
 - Existing `format=module` resources should show cleaner module titles and `From: Provider`.
 - Completion updates skills from the selected module when available; otherwise it falls back to the full resource skills.
+- Only show `From:` source lines for verified module/resource provenance with `source_url` and `date_checked`; never show vague provider-only lines such as `From: YouTube`.
 - Checking `Completed` should not reorder recommendations, swap the displayed module, leak state between profiles, or collapse the completed stage.
+- Locked items should show a lock row plus a direct unlock hint, e.g. `Complete Data cleaning or SQL practice courses to unlock.`
 - Keep `Reset progress`; do not show a progress table.
 - Keep a compact Progress summary above the learning path; keep the full Completed resources expander below the path.
+- If a completed item gives no level increase, show `Reinforced: ...` rather than a negative/no-progress message.
+- When the current path is fully cleared and relevant skills are Confident, show the purple mastery message: `Congratulations on completing your course - your tech skills just leveled up, and we can't wait to see what you build next!`
 - Show profile starting topics as `Completed topics: ...`.
 - Skill labels shown to learners must be human-readable, e.g. `Data visualisation`, `Data cleaning`, `Dashboarding`, `SQL`, not raw IDs like `data_visualisation`.
 - Skill increases should use level labels, not numeric arrows: `Not started`, `Basic`, `Working knowledge`, `Confident`.
 - Level labels are inline colored text: Not started orange `#FF6B00`, Basic readable yellow, Working knowledge readable green, Confident purple `#AA00FF` with `*`.
 - Broad tracks only appear as optional structured references.
+- Learner-facing `Why:` statements should be brief and skill-specific, e.g. `Targets SQL`, `Practise Data cleaning`, `Deepen Python`, or `Optional reinforcement for Dashboarding`; avoid obvious pathway boilerplate.
 - Research View explanations use wrapped HTML rows.
 - Research View metrics table, NDCG chart, and raw hybrid output use a white theme.
 - Research View selector/slider labels are black; slider is narrow and grey.

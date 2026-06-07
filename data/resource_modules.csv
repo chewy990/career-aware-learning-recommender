@@ -19,3 +19,23 @@ M017,R028,Pin Visuals to a Dashboard,DataCamp,dashboards,1,0.75,https://www.data
 M018,R031,Hypothesis Testing for Business Decisions,edX,statistics,2,1.0,https://www.edx.org/learn/statistics,2026-06-08
 M019,R032,Chart Selection for Data Stories,Coursera,data_visualisation;dashboards,1,1.0,https://www.coursera.org/learn/datavisualization,2026-06-08
 M020,R033,Cleaning Data with SQL Transformations,University Open Course,sql;data_cleaning,2,1.0,https://www.w3schools.com/sql/sql_update.asp,2026-06-08
+M021,R018,SQL Filtering and Sorting,DataCamp,sql,1,2.0,https://www.datacamp.com/tracks/data-analyst,2026-06-08
+M022,R018,SQL Joins for Analysis,DataCamp,sql;databases,2,2.0,https://www.datacamp.com/tracks/data-analyst,2026-06-08
+M023,R018,Cleaning Data with pandas,DataCamp,python;data_cleaning,2,3.0,https://www.datacamp.com/tracks/data-analyst,2026-06-08
+M024,R018,Tableau Dashboard Layouts,DataCamp,data_visualisation;dashboards,1,2.0,https://www.datacamp.com/tracks/data-analyst,2026-06-08
+M025,R018,Statistical Thinking,DataCamp,statistics,1,3.0,https://www.datacamp.com/tracks/data-analyst,2026-06-08
+M026,R018,Data Analyst Case Study,DataCamp,sql;python;data_visualisation;data_cleaning,2,4.0,https://www.datacamp.com/tracks/data-analyst,2026-06-08
+M027,R019,Supervised Learning Basics,DataCamp,python;machine_learning;model_evaluation,2,3.0,https://www.datacamp.com/tracks/machine-learning-engineer,2026-06-08
+M028,R019,Model Validation,DataCamp,machine_learning;model_evaluation;statistics,2,2.0,https://www.datacamp.com/tracks/machine-learning-engineer,2026-06-08
+M029,R019,Intro to MLOps,DataCamp,deployment;machine_learning;model_evaluation,3,3.0,https://www.datacamp.com/tracks/machine-learning-engineer,2026-06-08
+M030,R019,ML API Deployment,DataCamp,python;deployment;apis;machine_learning,3,3.0,https://www.datacamp.com/tracks/machine-learning-engineer,2026-06-08
+M031,R020,Git Basics,freeCodeCamp,version_control,1,2.0,https://www.freecodecamp.org/learn,2026-06-08
+M032,R020,API Routes,freeCodeCamp,programming;apis,2,3.0,https://www.freecodecamp.org/learn,2026-06-08
+M033,R020,Database Projects,freeCodeCamp,databases;sql;programming,2,4.0,https://www.freecodecamp.org/learn,2026-06-08
+M034,R020,Quality Assurance Testing,freeCodeCamp,testing;programming;apis,2,3.0,https://www.freecodecamp.org/learn,2026-06-08
+M035,R020,Object Oriented JavaScript,freeCodeCamp,programming;oop,2,3.0,https://www.freecodecamp.org/learn,2026-06-08
+M036,R047,Basic JavaScript,freeCodeCamp,programming,1,3.0,https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures-v8/,2026-06-08
+M037,R047,Algorithmic Thinking,freeCodeCamp,programming;testing,2,3.0,https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures-v8/,2026-06-08
+M038,R048,Managing Packages with npm,freeCodeCamp,programming;apis,2,2.0,https://www.freecodecamp.org/learn/back-end-development-and-apis/,2026-06-08
+M039,R048,Basic Node and Express,freeCodeCamp,programming;apis,2,3.0,https://www.freecodecamp.org/learn/back-end-development-and-apis/,2026-06-08
+M040,R048,MongoDB and Mongoose,freeCodeCamp,databases;apis;programming,2,3.0,https://www.freecodecamp.org/learn/back-end-development-and-apis/,2026-06-08

@@ -133,8 +133,6 @@ class RecommenderSuite:
         matched_gaps = sorted(resource.skills & set(gaps), key=lambda skill: gaps[skill], reverse=True)
         reasons: list[str] = []
 
-        if resource.pathway_relevance[profile.target_pathway] >= 2:
-            reasons.append(f"it is relevant to the {profile.target_pathway.replace('_', ' ')} pathway")
         if matched_gaps:
             reasons.append(f"it targets skill gaps in {', '.join(matched_gaps[:3])}")
         if resource.format == "career_track" or resource.duration_hours >= 20:

@@ -365,6 +365,17 @@ def apply_visual_theme() -> None:
             color: #aa00ff;
         }
 
+        .fyp-mastery-celebration {
+            color: #aa00ff;
+            font-weight: 900;
+            font-size: 1.02rem;
+            margin: 0.15rem 0 0.65rem;
+        }
+
+        .fyp-mastery-celebration .fyp-star {
+            font-size: 1rem;
+        }
+
         .fyp-skill-progress {
             display: flex;
             flex-wrap: wrap;
@@ -388,6 +399,32 @@ def apply_visual_theme() -> None:
         .fyp-level-arrow {
             color: var(--fyp-muted);
             font-weight: 800;
+        }
+
+        .fyp-completed-title {
+            color: #157347;
+            font-weight: 800;
+        }
+
+        .fyp-locked-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            color: #31363f;
+            font-weight: 800;
+            margin: 0.15rem 0 0.12rem;
+        }
+
+        .fyp-lock-icon {
+            font-size: 0.98rem;
+            line-height: 1;
+        }
+
+        .fyp-lock-hint {
+            color: #31363f;
+            font-size: 0.9rem;
+            font-weight: 650;
+            margin: 0 0 0.55rem 1.45rem;
         }
 
         .fyp-chart-panel {
@@ -631,11 +668,11 @@ def custom_profile_sidebar(skill_map: dict[str, dict[str, int]]) -> LearnerProfi
         format_func=lambda value: value.replace("_", " ").title(),
     )
     preferred_difficulty = st.sidebar.select_slider(
-        "Preferred resource difficulty",
+        "Preferred starting difficulty",
         options=[1, 2, 3],
         value=1,
         format_func=lambda value: {1: "Beginner", 2: "Intermediate", 3: "Advanced"}[value],
-        help="Controls how difficult the recommended materials should be. This is not your current skill level.",
+        help="Controls how difficult the first recommended materials should feel. This is not your current skill level.",
     )
 
     signature = f"custom:{target_pathway}"
@@ -763,8 +800,18 @@ def show_skill_gaps(
     profile: LearnerProfile,
     gaps: dict[str, float],
     skill_map: dict[str, dict[str, int]],
+    path: dict[str, list[Recommendation]],
+    resources_by_id: dict[str, Resource],
+    modules_by_parent: dict[str, list[ResourceModule]],
 ) -> None:
     st.markdown("#### Priority Skill Gaps")
+    actionable_skills = remaining_actionable_gap_skills(
+        profile,
+        gaps,
+        path,
+        resources_by_id,
+        modules_by_parent,
+    )
     gap_rows = [
         {
             "Skill": display_skill(skill),
@@ -773,11 +820,44 @@ def show_skill_gaps(
             "Target": skill_map[profile.target_pathway].get(skill, 0),
         }
         for skill, score in sorted(gaps.items(), key=lambda item: item[1], reverse=True)
+        if skill in actionable_skills
     ]
     if gap_rows:
         show_skill_gap_table(gap_rows[:5])
     else:
-        st.success("No major pathway gaps detected for the current profile.")
+        st.success("No remaining priority gaps in the current learning path.")
+
+
+def remaining_actionable_gap_skills(
+    profile: LearnerProfile,
+    gaps: dict[str, float],
+    path: dict[str, list[Recommendation]],
+    resources_by_id: dict[str, Resource],
+    modules_by_parent: dict[str, list[ResourceModule]],
+) -> set[str]:
+    completed_item_ids = {
+        item.get("item_id", f"resource:{item.get('resource_id')}")
+        for item in st.session_state.get("completed_resources", [])
+    }
+    actionable: set[str] = set()
+    for stage, recommendations in path.items():
+        for recommendation in recommendations:
+            resource = resources_by_id[recommendation.resource_id]
+            module = stable_selected_module_for_resource(
+                profile,
+                stage,
+                resource,
+                modules_by_parent.get(resource.resource_id, []),
+                gaps,
+            )
+            item_id = f"module:{module.module_id}" if module else f"resource:{resource.resource_id}"
+            if item_id in completed_item_ids:
+                continue
+            item_skills = module.skills if module else resource.skills
+            if not can_improve_in_stage(stage, profile.current_skills, item_skills):
+                continue
+            actionable.update(item_skills & set(gaps))
+    return actionable
 
 
 def show_skill_gap_table(rows: list[dict[str, object]]) -> None:
@@ -833,6 +913,7 @@ def reset_progress_state() -> None:
         "last_progress_update",
         "display_learning_path",
         "display_learning_path_signature",
+        "display_learning_path_start_skills",
         "display_learning_items",
         "path_locked_by_completion",
         "last_completed_stage",
@@ -852,6 +933,7 @@ def reset_progress_state() -> None:
 def clear_learning_path_snapshot() -> None:
     st.session_state.pop("display_learning_path", None)
     st.session_state.pop("display_learning_path_signature", None)
+    st.session_state.pop("display_learning_path_start_skills", None)
     st.session_state.pop("display_learning_items", None)
     st.session_state.pop("path_locked_by_completion", None)
 
@@ -875,12 +957,20 @@ def complete_learning_item(
     topic: str,
     resource_id: str,
     stage: str | None = None,
+    source: str = "",
+    difficulty: str = "",
+    duration_hours: float | None = None,
+    explanation: str = "",
+    skill_targets: dict[str, int] | None = None,
 ) -> None:
     active_skills = dict(st.session_state.get("active_skills", profile.current_skills))
     completed_topics = set(st.session_state.get("active_completed_topics", profile.completed_topics))
     before_skills = dict(active_skills)
     for skill in skills:
-        active_skills[skill] = min(active_skills.get(skill, 0) + 1, 3)
+        current_level = active_skills.get(skill, 0)
+        max_level = skill_completion_cap(stage, current_level, skill, skill_targets)
+        if current_level < max_level:
+            active_skills[skill] = min(current_level + 1, max_level)
         completed_topics.add(skill)
     completed_topics.add(topic)
 
@@ -896,6 +986,10 @@ def complete_learning_item(
                 "resource_id": resource_id,
                 "title": title,
                 "skills": ", ".join(sorted(skills)),
+                "source": source,
+                "difficulty": difficulty,
+                "duration_hours": duration_hours,
+                "explanation": explanation,
             }
         )
 
@@ -904,6 +998,7 @@ def complete_learning_item(
         for skill in sorted(skills)
         if active_skills.get(skill, 0) != before_skills.get(skill, 0)
     }
+    reinforced_skills = sorted(skills) if not skill_changes else []
     st.session_state["active_skills"] = active_skills
     active_signature = st.session_state.get("active_signature", profile.profile_id)
     if active_signature.startswith("custom:"):
@@ -916,10 +1011,105 @@ def complete_learning_item(
     st.session_state["last_progress_update"] = {
         "title": title,
         "skill_changes": skill_changes,
+        "reinforced_skills": reinforced_skills,
     }
     if stage:
         st.session_state["last_completed_stage"] = stage
     st.session_state["path_locked_by_completion"] = True
+
+
+def stage_skill_cap(stage: str | None) -> int | None:
+    if not stage:
+        return None
+    if stage.startswith("1."):
+        return 1
+    if stage.startswith("2."):
+        return 2
+    if stage.startswith("3."):
+        return 3
+    if stage.startswith("Optional"):
+        return 2
+    return None
+
+
+def skill_completion_cap(
+    stage: str | None,
+    current_level: int,
+    skill: str,
+    skill_targets: dict[str, int] | None = None,
+) -> int:
+    target_level = (skill_targets or {}).get(skill, 3)
+    if target_level <= 0:
+        return current_level
+    stage_cap = stage_skill_cap(stage)
+    if stage_cap is None:
+        return target_level
+    return min(target_level, max(stage_cap, current_level + 1))
+
+
+def completion_readiness(stage: str, current_skills: dict[str, int], item_skills: set[str]) -> tuple[bool, str]:
+    levels = [current_skills.get(skill, 0) for skill in item_skills]
+    if stage.startswith("1."):
+        return True, ""
+    if stage.startswith("2."):
+        if any(level >= 1 for level in levels):
+            return True, ""
+        return False, unlock_message(stage, current_skills, item_skills)
+    if stage.startswith("3."):
+        if any(level >= 2 for level in levels):
+            return True, ""
+        return False, unlock_message(stage, current_skills, item_skills)
+    if stage.startswith("Optional"):
+        if any(level >= 1 for level in levels):
+            return True, ""
+        return False, unlock_message(stage, current_skills, item_skills)
+    return True, ""
+
+
+def unlock_message(stage: str, current_skills: dict[str, int], item_skills: set[str]) -> str:
+    if stage.startswith("3."):
+        needed_level = 2
+        course_type = "practice"
+    else:
+        needed_level = 1
+        course_type = "foundation"
+    needed_skills = [
+        skill for skill in sorted(item_skills)
+        if current_skills.get(skill, 0) < needed_level
+    ]
+    if not needed_skills:
+        return "Unlock requirement: complete more foundation courses first."
+    skill_text = unlock_skill_text(needed_skills[:2])
+    if len(needed_skills) > 2:
+        skill_text = f"{skill_text} or a related skill"
+    return f"Unlock requirement: complete a {skill_text} {course_type} course first."
+
+
+def unlock_skill_text(skills: list[str]) -> str:
+    labels = [display_skill(skill) for skill in skills]
+    if len(labels) == 1:
+        return labels[0]
+    return " or ".join(labels)
+
+
+def can_improve_in_stage(stage: str, current_skills: dict[str, int], item_skills: set[str]) -> bool:
+    max_level = stage_skill_cap(stage)
+    if max_level is None:
+        return True
+    return any(current_skills.get(skill, 0) < max_level for skill in item_skills)
+
+
+def can_gain_tracked_skill(
+    stage: str,
+    current_skills: dict[str, int],
+    item_skills: set[str],
+    skill_targets: dict[str, int],
+) -> bool:
+    return any(
+        current_skills.get(skill, 0)
+        < skill_completion_cap(stage, current_skills.get(skill, 0), skill, skill_targets)
+        for skill in item_skills
+    )
 
 
 def modules_by_parent_resource(modules: list[ResourceModule]) -> dict[str, list[ResourceModule]]:
@@ -935,7 +1125,7 @@ def selected_module_for_resource(
     modules: list[ResourceModule],
     gaps: dict[str, float],
 ) -> ResourceModule | None:
-    if resource.format == "project" or is_broad_track(resource):
+    if resource.format == "project":
         return None
     candidates = []
     for module in modules:
@@ -973,9 +1163,24 @@ def stable_selected_module_for_resource(
 
 
 def resource_item_source(resource: Resource, module: ResourceModule | None) -> str:
-    if module:
+    if module and module.source_url and module.date_checked:
         return f"From: {module.provider} - {resource.title}"
-    return f"From: {resource.provider}"
+    if getattr(resource, "source_url", "") and getattr(resource, "date_checked", ""):
+        return f"From: {resource.provider}"
+    return ""
+
+
+def learning_item_reason(stage: str, item_skills: set[str]) -> str:
+    skills = display_skill_list(sorted(item_skills)[:3])
+    if not skills:
+        return ""
+    if stage.startswith("2."):
+        return f"Why: Practise {skills}."
+    if stage.startswith("3."):
+        return f"Why: Deepen {skills}."
+    if stage.startswith("Optional"):
+        return f"Why: Optional reinforcement for {skills}."
+    return f"Why: Targets {skills}."
 
 
 def module_style_resource_title(resource: Resource) -> str:
@@ -1006,6 +1211,7 @@ def get_stable_learning_path(
             suite, profile, resources_by_id, total_k=total_k
         )
         st.session_state["display_learning_path_signature"] = signature
+        st.session_state["display_learning_path_start_skills"] = dict(profile.current_skills)
         st.session_state["path_locked_by_completion"] = False
     return st.session_state["display_learning_path"]
 
@@ -1109,7 +1315,7 @@ def project_recommendations_for_profile(
             title=resource.title,
             provider=resource.provider,
             score=round(score, 4),
-            explanation="Recommended as an early practical project to reveal gaps and apply current skills.",
+            explanation=f"Practise {display_skill_list(sorted(resource.skills)[:3])}.",
         )
         for index, (score, resource) in enumerate(scored[:limit])
     ]
@@ -1145,7 +1351,7 @@ def deepen_recommendations_for_profile(
             title=resource.title,
             provider=resource.provider,
             score=round(score, 4),
-            explanation="Recommended as a later step after initial practice to deepen an important pathway skill.",
+            explanation=f"Deepen {display_skill_list(sorted(resource.skills)[:3])}.",
         )
         for index, (score, resource) in enumerate(scored[:limit])
     ]
@@ -1190,7 +1396,7 @@ def structured_tracks_for_profile(
             title=resource.title,
             provider=resource.provider,
             score=round(score, 4),
-            explanation="Optional structured reference; pick useful modules from it rather than completing the whole track.",
+            explanation=f"Optional reinforcement for {display_skill_list(sorted(resource.skills)[:3])}.",
         )
         for index, (score, resource) in enumerate(scored[:limit])
     ]
@@ -1201,8 +1407,14 @@ def show_learning_path(
     resources_by_id: dict[str, Resource],
     profile: LearnerProfile,
     gaps: dict[str, float],
+    skill_map: dict[str, dict[str, int]],
     modules_by_parent: dict[str, list[ResourceModule]],
 ) -> None:
+    path_start_skills = st.session_state.get(
+        "display_learning_path_start_skills",
+        profile.current_skills,
+    )
+    skill_targets = skill_map.get(profile.target_pathway, {})
     for stage, recommendations in path.items():
         expanded = stage.startswith("1.") or stage.startswith("2.") or (
             st.session_state.get("last_completed_stage") == stage
@@ -1211,25 +1423,30 @@ def show_learning_path(
             if not recommendations:
                 st.info("No resources assigned to this stage.")
                 continue
+            shown_count = 0
             for recommendation in recommendations:
+                resource = resources_by_id[recommendation.resource_id]
+                module = stable_selected_module_for_resource(
+                    profile,
+                    stage,
+                    resource,
+                    modules_by_parent.get(resource.resource_id, []),
+                    gaps,
+                )
+                item_id = (
+                    f"module:{module.module_id}"
+                    if module
+                    else f"resource:{resource.resource_id}"
+                )
+                item_title = module.module_title if module else module_style_resource_title(resource)
+                item_skills = module.skills if module else resource.skills
+                item_difficulty = module.difficulty_level if module else resource.difficulty_level
+                item_duration = module.duration_hours if module else resource.duration_hours
+                item_reason = learning_item_reason(stage, item_skills)
+                if not can_improve_in_stage(stage, path_start_skills, item_skills):
+                    continue
+                shown_count += 1
                 with st.container(border=True):
-                    resource = resources_by_id[recommendation.resource_id]
-                    module = stable_selected_module_for_resource(
-                        profile,
-                        stage,
-                        resource,
-                        modules_by_parent.get(resource.resource_id, []),
-                        gaps,
-                    )
-                    item_id = (
-                        f"module:{module.module_id}"
-                        if module
-                        else f"resource:{resource.resource_id}"
-                    )
-                    item_title = module.module_title if module else module_style_resource_title(resource)
-                    item_skills = module.skills if module else resource.skills
-                    item_difficulty = module.difficulty_level if module else resource.difficulty_level
-                    item_duration = module.duration_hours if module else resource.duration_hours
                     completed_resource_ids = {
                         item.get("item_id", f"resource:{item.get('resource_id')}")
                         for item in st.session_state.get("completed_resources", [])
@@ -1240,29 +1457,70 @@ def show_learning_path(
                         f"complete_{reset_version}_{active_signature}_{stage}_{item_id}"
                     )
                     completed = item_id in completed_resource_ids
-                    st.checkbox(
-                        "Completed",
-                        value=completed,
-                        key=checkbox_key,
-                        disabled=completed,
-                        on_change=complete_learning_item,
-                        args=(
-                            profile,
-                            item_id,
-                            item_title,
-                            item_skills,
-                            resource.topic,
-                            resource.resource_id,
-                            stage,
-                        ),
+                    ready, not_ready_reason = completion_readiness(
+                        stage,
+                        profile.current_skills,
+                        item_skills,
                     )
-                    title = f"~~{item_title}~~" if completed else item_title
-                    st.markdown(f"**{title}**")
-                    st.caption(resource_item_source(resource, module))
+                    still_improves = can_gain_tracked_skill(
+                        stage,
+                        profile.current_skills,
+                        item_skills,
+                        skill_targets,
+                    )
+                    if ready or completed:
+                        st.checkbox(
+                            "Completed",
+                            value=completed,
+                            key=checkbox_key,
+                            disabled=completed,
+                            on_change=complete_learning_item,
+                            args=(
+                                profile,
+                                item_id,
+                                item_title,
+                                item_skills,
+                                resource.topic,
+                                resource.resource_id,
+                                stage,
+                                resource_item_source(resource, module),
+                                difficulty_label(item_difficulty),
+                                item_duration,
+                                item_reason,
+                                skill_targets,
+                            ),
+                        )
+                    else:
+                        st.markdown(
+                            '<div class="fyp-locked-row">'
+                            '<span class="fyp-lock-icon">&#128274;</span>'
+                            '<span>Locked</span>'
+                            '</div>',
+                            unsafe_allow_html=True,
+                        )
+                        st.markdown(
+                            f'<div class="fyp-lock-hint">{html.escape(not_ready_reason)}</div>',
+                            unsafe_allow_html=True,
+                        )
+                    if completed:
+                        st.markdown(
+                            f'<span class="fyp-completed-title">{html.escape(item_title)}</span>',
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.markdown(f"**{item_title}**")
+                    item_source = resource_item_source(resource, module)
+                    if item_source:
+                        st.caption(item_source)
                     st.caption(
                         f"{difficulty_label(item_difficulty)} | {item_duration:g} hours"
                     )
-                    st.write(shorten_explanation(recommendation.explanation))
+                    if ready and not completed and not still_improves:
+                        st.caption("Additional doable practice; useful reinforcement, but it will not raise a tracked skill level.")
+                    if item_reason:
+                        st.write(item_reason)
+            if shown_count == 0:
+                st.info("No useful next steps for this stage right now.")
 
 
 def is_broad_track(resource: Resource) -> bool:
@@ -1287,24 +1545,105 @@ def show_learner_view(
     with action_col:
         show_completion_control(profile, path, resources_by_id)
 
-    show_progress_summary(profile, skill_map, include_completed_resources=False)
+    show_progress_summary(
+        profile,
+        skill_map,
+        gaps,
+        path,
+        resources_by_id,
+        modules_by_parent,
+        include_completed_resources=False,
+    )
 
     st.subheader("Your Learning Path")
     st.caption("Learn only the critical basics, then practise early. Deepen later only after useful practice.")
-    show_learning_path(path, resources_by_id, profile, gaps, modules_by_parent)
+    show_learning_path(path, resources_by_id, profile, gaps, skill_map, modules_by_parent)
 
     show_completed_resources(profile)
 
     with st.expander("View skill gaps"):
-        show_skill_gaps(profile, gaps, skill_map)
+        show_skill_gaps(profile, gaps, skill_map, path, resources_by_id, modules_by_parent)
+
+
+def should_show_mastery_celebration(
+    profile: LearnerProfile,
+    gaps: dict[str, float],
+    path: dict[str, list[Recommendation]],
+    skill_map: dict[str, dict[str, int]],
+    resources_by_id: dict[str, Resource],
+    modules_by_parent: dict[str, list[ResourceModule]],
+) -> bool:
+    if remaining_actionable_gap_skills(profile, gaps, path, resources_by_id, modules_by_parent):
+        return False
+
+    completed_item_ids = {
+        item.get("item_id", f"resource:{item.get('resource_id')}")
+        for item in st.session_state.get("completed_resources", [])
+    }
+    path_start_skills = st.session_state.get(
+        "display_learning_path_start_skills",
+        profile.current_skills,
+    )
+    target_skills = {
+        skill for skill, target in skill_map[profile.target_pathway].items() if target > 0
+    }
+    visible_item_ids: set[str] = set()
+    visible_target_skills: set[str] = set()
+
+    for stage, recommendations in path.items():
+        for recommendation in recommendations:
+            resource = resources_by_id[recommendation.resource_id]
+            module = stable_selected_module_for_resource(
+                profile,
+                stage,
+                resource,
+                modules_by_parent.get(resource.resource_id, []),
+                gaps,
+            )
+            item_id = f"module:{module.module_id}" if module else f"resource:{resource.resource_id}"
+            item_skills = module.skills if module else resource.skills
+            if not can_improve_in_stage(stage, path_start_skills, item_skills):
+                continue
+            visible_item_ids.add(item_id)
+            visible_target_skills.update(item_skills & target_skills)
+
+    if not visible_item_ids or not visible_item_ids.issubset(completed_item_ids):
+        return False
+    if not visible_target_skills:
+        return False
+    return all(profile.current_skills.get(skill, 0) >= 3 for skill in visible_target_skills)
 
 
 def show_progress_summary(
     profile: LearnerProfile,
     skill_map: dict[str, dict[str, int]],
+    gaps: dict[str, float] | None = None,
+    path: dict[str, list[Recommendation]] | None = None,
+    resources_by_id: dict[str, Resource] | None = None,
+    modules_by_parent: dict[str, list[ResourceModule]] | None = None,
     include_completed_resources: bool = True,
 ) -> None:
     st.subheader("Progress")
+    if (
+        gaps is not None
+        and path is not None
+        and resources_by_id is not None
+        and modules_by_parent is not None
+        and should_show_mastery_celebration(
+            profile,
+            gaps,
+            path,
+            skill_map,
+            resources_by_id,
+            modules_by_parent,
+        )
+    ):
+        st.markdown(
+            '<div class="fyp-mastery-celebration">'
+            "<span class=\"fyp-star\">*</span> Congratulations on completing your course - your tech skills just leveled up, and we can't wait to see what you build next!"
+            '</div>',
+            unsafe_allow_html=True,
+        )
     last_update = st.session_state.get("last_progress_update")
     if last_update:
         st.success(f"Last completed: {last_update['title']}")
@@ -1325,6 +1664,12 @@ def show_progress_summary(
                 f'<div class="fyp-skill-progress">{change_items}</div>',
                 unsafe_allow_html=True,
             )
+        else:
+            reinforced = last_update.get("reinforced_skills", [])
+            if reinforced:
+                st.markdown(
+                    f"**Reinforced:** {display_skill_list(reinforced)}"
+                )
 
     if include_completed_resources:
         show_completed_resources(profile)
@@ -1338,12 +1683,27 @@ def show_completed_resources(profile: LearnerProfile) -> None:
                 reset_version = st.session_state.get("progress_reset_version", 0)
                 active_signature = st.session_state.get("active_signature", profile.profile_id)
                 item_id = item.get("item_id", f"resource:{item['resource_id']}")
-                st.checkbox(
-                    item["title"],
-                    value=True,
-                    disabled=True,
-                    key=f"done_{reset_version}_{active_signature}_{item_id}",
-                )
+                with st.container(border=True):
+                    st.checkbox(
+                        "Completed",
+                        value=True,
+                        disabled=True,
+                        key=f"done_{reset_version}_{active_signature}_{item_id}",
+                    )
+                    st.markdown(
+                        f'<span class="fyp-completed-title">{html.escape(item["title"])}</span>',
+                        unsafe_allow_html=True,
+                    )
+                    if item.get("source"):
+                        st.caption(item["source"])
+                    difficulty = item.get("difficulty")
+                    duration_hours = item.get("duration_hours")
+                    if difficulty and duration_hours is not None:
+                        st.caption(f"{difficulty} | {duration_hours:g} hours")
+                    elif difficulty:
+                        st.caption(difficulty)
+                    if item.get("explanation"):
+                        st.write(item["explanation"])
 
 
 def show_research_view(

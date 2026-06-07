@@ -21,6 +21,8 @@ class Resource:
     quality_score: float
     pathway_relevance: dict[str, int]
     description: str
+    source_url: str = ""
+    date_checked: str = ""
 
 
 @dataclass(frozen=True)
@@ -73,6 +75,8 @@ def read_resources(path: Path) -> list[Resource]:
                     "software_developer": int(row["software_developer_relevance"]),
                 },
                 description=row["description"],
+                source_url=row.get("source_url", "").strip(),
+                date_checked=row.get("date_checked", "").strip(),
             )
         )
     return resources
