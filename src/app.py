@@ -25,7 +25,28 @@ from edu_recommender.data import (  # noqa: E402
     read_skill_map,
 )
 from edu_recommender.evaluation import evaluate_recommendations  # noqa: E402
+from edu_recommender.learning_path import (  # noqa: E402
+    build_learning_path,
+    can_gain_tracked_skill,
+    can_improve_in_stage,
+    completion_readiness,
+    learning_item_reason,
+    module_style_resource_title,
+    modules_by_parent_resource,
+    resource_item_source,
+    selected_module_for_resource,
+    skill_completion_cap,
+)
 from edu_recommender.models import Recommendation, RecommenderSuite  # noqa: E402
+from edu_recommender.ui_helpers import (  # noqa: E402
+    difficulty_label,
+    display_skill,
+    display_skill_list,
+    show_ndcg_chart,
+    show_recommendations,
+    show_white_table,
+    skill_level_badge,
+)
 
 DATA_DIR = ROOT / "data"
 OUTPUT_DIR = ROOT / "outputs"
@@ -741,48 +762,6 @@ def infer_weak_skills(
     return weak_skills - completed_topics
 
 
-def display_skill(skill: str) -> str:
-    labels = {
-        "apis": "APIs",
-        "oop": "Object-oriented programming",
-        "sql": "SQL",
-        "data_visualisation": "Data visualisation",
-        "data_cleaning": "Data cleaning",
-        "machine_learning": "Machine learning",
-        "model_evaluation": "Model evaluation",
-        "version_control": "Version control",
-        "dashboards": "Dashboarding",
-    }
-    return labels.get(skill, skill.replace("_", " ").title())
-
-
-def display_skill_list(skills: set[str]) -> str:
-    if not skills:
-        return "None yet"
-    return ", ".join(display_skill(skill) for skill in sorted(skills))
-
-
-def skill_level_label(level: int) -> str:
-    return {
-        0: "Not started",
-        1: "Basic",
-        2: "Working knowledge",
-        3: "Confident",
-    }.get(level, str(level))
-
-
-def skill_level_badge(level: int) -> str:
-    label = skill_level_label(level)
-    css_class = {
-        0: "fyp-level-not-started",
-        1: "fyp-level-basic",
-        2: "fyp-level-working",
-        3: "fyp-level-confident",
-    }.get(level, "fyp-level-working")
-    star = " *" if level == 3 else ""
-    return f'<span class="fyp-level-badge {css_class}">{html.escape(label)}{star}</span>'
-
-
 def show_profile(profile: LearnerProfile) -> None:
     st.markdown(
         f"**{profile.name}**  \n"
@@ -1018,129 +997,6 @@ def complete_learning_item(
     st.session_state["path_locked_by_completion"] = True
 
 
-def stage_skill_cap(stage: str | None) -> int | None:
-    if not stage:
-        return None
-    if stage.startswith("1."):
-        return 1
-    if stage.startswith("2."):
-        return 2
-    if stage.startswith("3."):
-        return 3
-    if stage.startswith("Optional"):
-        return 2
-    return None
-
-
-def skill_completion_cap(
-    stage: str | None,
-    current_level: int,
-    skill: str,
-    skill_targets: dict[str, int] | None = None,
-) -> int:
-    target_level = (skill_targets or {}).get(skill, 3)
-    if target_level <= 0:
-        return current_level
-    stage_cap = stage_skill_cap(stage)
-    if stage_cap is None:
-        return target_level
-    return min(target_level, max(stage_cap, current_level + 1))
-
-
-def completion_readiness(stage: str, current_skills: dict[str, int], item_skills: set[str]) -> tuple[bool, str]:
-    levels = [current_skills.get(skill, 0) for skill in item_skills]
-    if stage.startswith("1."):
-        return True, ""
-    if stage.startswith("2."):
-        if any(level >= 1 for level in levels):
-            return True, ""
-        return False, unlock_message(stage, current_skills, item_skills)
-    if stage.startswith("3."):
-        if any(level >= 2 for level in levels):
-            return True, ""
-        return False, unlock_message(stage, current_skills, item_skills)
-    if stage.startswith("Optional"):
-        if any(level >= 1 for level in levels):
-            return True, ""
-        return False, unlock_message(stage, current_skills, item_skills)
-    return True, ""
-
-
-def unlock_message(stage: str, current_skills: dict[str, int], item_skills: set[str]) -> str:
-    if stage.startswith("3."):
-        needed_level = 2
-        course_type = "practice"
-    else:
-        needed_level = 1
-        course_type = "foundation"
-    needed_skills = [
-        skill for skill in sorted(item_skills)
-        if current_skills.get(skill, 0) < needed_level
-    ]
-    if not needed_skills:
-        return "Unlock requirement: complete more foundation courses first."
-    skill_text = unlock_skill_text(needed_skills[:2])
-    if len(needed_skills) > 2:
-        skill_text = f"{skill_text} or a related skill"
-    return f"Unlock requirement: complete a {skill_text} {course_type} course first."
-
-
-def unlock_skill_text(skills: list[str]) -> str:
-    labels = [display_skill(skill) for skill in skills]
-    if len(labels) == 1:
-        return labels[0]
-    return " or ".join(labels)
-
-
-def can_improve_in_stage(stage: str, current_skills: dict[str, int], item_skills: set[str]) -> bool:
-    max_level = stage_skill_cap(stage)
-    if max_level is None:
-        return True
-    return any(current_skills.get(skill, 0) < max_level for skill in item_skills)
-
-
-def can_gain_tracked_skill(
-    stage: str,
-    current_skills: dict[str, int],
-    item_skills: set[str],
-    skill_targets: dict[str, int],
-) -> bool:
-    return any(
-        current_skills.get(skill, 0)
-        < skill_completion_cap(stage, current_skills.get(skill, 0), skill, skill_targets)
-        for skill in item_skills
-    )
-
-
-def modules_by_parent_resource(modules: list[ResourceModule]) -> dict[str, list[ResourceModule]]:
-    grouped: dict[str, list[ResourceModule]] = {}
-    for module in modules:
-        grouped.setdefault(module.parent_resource_id, []).append(module)
-    return grouped
-
-
-def selected_module_for_resource(
-    profile: LearnerProfile,
-    resource: Resource,
-    modules: list[ResourceModule],
-    gaps: dict[str, float],
-) -> ResourceModule | None:
-    if resource.format == "project":
-        return None
-    candidates = []
-    for module in modules:
-        matched_gap_score = sum(gaps.get(skill, 0.0) for skill in module.skills)
-        if matched_gap_score <= 0:
-            continue
-        difficulty_fit = max(0.0, 1 - abs(module.difficulty_level - profile.preferred_difficulty) / 2)
-        score = matched_gap_score + difficulty_fit
-        candidates.append((score, module))
-    if not candidates:
-        return None
-    candidates.sort(key=lambda item: (-item[0], item[1].duration_hours, item[1].module_title))
-    return candidates[0][1]
-
-
 def stable_selected_module_for_resource(
     profile: LearnerProfile,
     stage: str,
@@ -1160,36 +1016,6 @@ def stable_selected_module_for_resource(
     module = selected_module_for_resource(profile, resource, modules, gaps)
     selections[selection_key] = module.module_id if module else ""
     return module
-
-
-def resource_item_source(resource: Resource, module: ResourceModule | None) -> str:
-    if module and module.source_url and module.date_checked:
-        return f"From: {module.provider} - {resource.title}"
-    if getattr(resource, "source_url", "") and getattr(resource, "date_checked", ""):
-        return f"From: {resource.provider}"
-    return ""
-
-
-def learning_item_reason(stage: str, item_skills: set[str]) -> str:
-    skills = display_skill_list(sorted(item_skills)[:3])
-    if not skills:
-        return ""
-    if stage.startswith("2."):
-        return f"Why: Practise {skills}."
-    if stage.startswith("3."):
-        return f"Why: Deepen {skills}."
-    if stage.startswith("Optional"):
-        return f"Why: Optional reinforcement for {skills}."
-    return f"Why: Targets {skills}."
-
-
-def module_style_resource_title(resource: Resource) -> str:
-    if resource.format != "module":
-        return resource.title
-    prefix = f"{resource.provider} Module "
-    if resource.title.startswith(prefix):
-        return resource.title.removeprefix(prefix)
-    return resource.title.replace(" Module ", " ", 1)
 
 
 def get_stable_learning_path(
@@ -1239,167 +1065,6 @@ def apply_pending_skill_slider_sync(signature: str) -> None:
     for skill, level in pending["skills"].items():
         st.session_state[skill_slider_key(signature, skill)] = level
     st.session_state.pop("pending_skill_slider_sync", None)
-
-
-def build_learning_path(
-    suite: RecommenderSuite,
-    profile: LearnerProfile,
-    resources_by_id: dict[str, Resource],
-    total_k: int,
-) -> dict[str, list[Recommendation]]:
-    recommendations = suite.recommend(profile, model="hybrid", top_k=total_k, include_broad_tracks=False)
-    gaps = suite.skill_gaps(profile)
-    stages: dict[str, list[Recommendation]] = {
-        "1. Learn just enough": [],
-        "2. Start a practical project": project_recommendations_for_profile(
-            profile, resources_by_id, gaps, limit=3
-        ),
-        "3. Deepen later": deepen_recommendations_for_profile(
-            profile, resources_by_id, gaps, limit=3
-        ),
-        "Optional structured tracks": structured_tracks_for_profile(profile, resources_by_id, gaps, limit=3),
-    }
-    project_ids = {recommendation.resource_id for recommendation in stages["2. Start a practical project"]}
-    deepen_ids = {recommendation.resource_id for recommendation in stages["3. Deepen later"]}
-
-    for recommendation in recommendations:
-        resource = resources_by_id[recommendation.resource_id]
-        if (
-            is_broad_track(resource)
-            or recommendation.resource_id in project_ids
-            or recommendation.resource_id in deepen_ids
-        ):
-            continue
-        matched_gap_strength = max((gaps.get(skill, 0.0) for skill in resource.skills), default=0.0)
-        if resource.format == "project":
-            stages["2. Start a practical project"].append(recommendation)
-        elif matched_gap_strength >= 0.7 or resource.difficulty_level <= profile.preferred_difficulty:
-            stages["1. Learn just enough"].append(recommendation)
-
-    return balance_path_stages(stages)
-
-
-def balance_path_stages(stages: dict[str, list[Recommendation]]) -> dict[str, list[Recommendation]]:
-    return {stage: list(recommendations[:4]) for stage, recommendations in stages.items()}
-
-
-def project_recommendations_for_profile(
-    profile: LearnerProfile,
-    resources_by_id: dict[str, Resource],
-    gaps: dict[str, float],
-    limit: int,
-) -> list[Recommendation]:
-    scored = []
-    for resource in resources_by_id.values():
-        if resource.format != "project":
-            continue
-        if is_broad_track(resource) or is_supporting_resource(resource):
-            continue
-        skill_gap_match = sum(gaps.get(skill, 0.0) for skill in resource.skills)
-        pathway_relevance = resource.pathway_relevance.get(profile.target_pathway, 0)
-        if pathway_relevance == 0:
-            continue
-        difficulty_fit = max(0.0, 1 - abs(resource.difficulty_level - profile.preferred_difficulty) / 2)
-        prerequisite_fit = project_prerequisite_fit(profile, resource)
-        score = skill_gap_match + pathway_relevance + difficulty_fit + prerequisite_fit
-        if score > 0:
-            scored.append((score, resource))
-
-    scored.sort(key=lambda item: (-item[0], item[1].duration_hours, item[1].title))
-    return [
-        Recommendation(
-            profile_id=profile.profile_id,
-            model="project_selector",
-            rank=index + 1,
-            resource_id=resource.resource_id,
-            title=resource.title,
-            provider=resource.provider,
-            score=round(score, 4),
-            explanation=f"Practise {display_skill_list(sorted(resource.skills)[:3])}.",
-        )
-        for index, (score, resource) in enumerate(scored[:limit])
-    ]
-
-
-def deepen_recommendations_for_profile(
-    profile: LearnerProfile,
-    resources_by_id: dict[str, Resource],
-    gaps: dict[str, float],
-    limit: int,
-) -> list[Recommendation]:
-    scored = []
-    for resource in resources_by_id.values():
-        if resource.format in {"project", "career_track"} or is_broad_track(resource) or is_supporting_resource(resource):
-            continue
-        pathway_relevance = resource.pathway_relevance.get(profile.target_pathway, 0)
-        if pathway_relevance == 0:
-            continue
-        skill_gap_match = sum(gaps.get(skill, 0.0) for skill in resource.skills)
-        depth_bonus = 1.0 if resource.difficulty_level > profile.preferred_difficulty else 0.35
-        prerequisite_fit = project_prerequisite_fit(profile, resource)
-        score = skill_gap_match + pathway_relevance + depth_bonus + prerequisite_fit
-        if score > 0:
-            scored.append((score, resource))
-
-    scored.sort(key=lambda item: (-item[0], item[1].duration_hours, item[1].title))
-    return [
-        Recommendation(
-            profile_id=profile.profile_id,
-            model="deepen_selector",
-            rank=index + 1,
-            resource_id=resource.resource_id,
-            title=resource.title,
-            provider=resource.provider,
-            score=round(score, 4),
-            explanation=f"Deepen {display_skill_list(sorted(resource.skills)[:3])}.",
-        )
-        for index, (score, resource) in enumerate(scored[:limit])
-    ]
-
-
-def project_prerequisite_fit(profile: LearnerProfile, resource: Resource) -> float:
-    if not resource.prerequisites:
-        return 1.0
-    met = {
-        prerequisite
-        for prerequisite in resource.prerequisites
-        if prerequisite in profile.completed_topics or profile.current_skills.get(prerequisite, 0) >= 1
-    }
-    return len(met) / len(resource.prerequisites)
-
-
-def structured_tracks_for_profile(
-    profile: LearnerProfile,
-    resources_by_id: dict[str, Resource],
-    gaps: dict[str, float],
-    limit: int,
-) -> list[Recommendation]:
-    scored = []
-    for resource in resources_by_id.values():
-        if not is_broad_track(resource):
-            continue
-        if is_supporting_resource(resource):
-            continue
-        if resource.pathway_relevance.get(profile.target_pathway, 0) == 0:
-            continue
-        skill_gap_match = sum(gaps.get(skill, 0.0) for skill in resource.skills)
-        score = resource.pathway_relevance.get(profile.target_pathway, 0) + skill_gap_match
-        if score > 0:
-            scored.append((score, resource))
-    scored.sort(key=lambda item: (-item[0], item[1].duration_hours, item[1].title))
-    return [
-        Recommendation(
-            profile_id=profile.profile_id,
-            model="optional_track",
-            rank=index + 1,
-            resource_id=resource.resource_id,
-            title=resource.title,
-            provider=resource.provider,
-            score=round(score, 4),
-            explanation=f"Optional reinforcement for {display_skill_list(sorted(resource.skills)[:3])}.",
-        )
-        for index, (score, resource) in enumerate(scored[:limit])
-    ]
 
 
 def show_learning_path(
@@ -1521,14 +1186,6 @@ def show_learning_path(
                         st.write(item_reason)
             if shown_count == 0:
                 st.info("No useful next steps for this stage right now.")
-
-
-def is_broad_track(resource: Resource) -> bool:
-    return resource.format == "career_track" or resource.duration_hours >= 20
-
-
-def is_supporting_resource(resource: Resource) -> bool:
-    return resource.format in {"article", "reading", "youtube", "video_essay", "explainer"}
 
 
 def show_learner_view(
@@ -1749,155 +1406,6 @@ def show_research_view(
             )
         else:
             st.info("Run `src/run_pipeline.py` to generate output CSV files.")
-
-
-def difficulty_label(level: int) -> str:
-    return {1: "Beginner", 2: "Intermediate", 3: "Advanced"}.get(level, str(level))
-
-
-def shorten_explanation(explanation: str) -> str:
-    explanation = explanation.replace("Recommended because ", "")
-    explanation = explanation.rstrip(".")
-    explanation = humanise_explanation_text(explanation)
-    parts = [part.strip() for part in explanation.split(";") if part.strip()]
-    if not parts:
-        return explanation
-    return "Why: " + "; ".join(parts[:2]) + "."
-
-
-def humanise_explanation_text(explanation: str) -> str:
-    replacements = {
-        "data_visualisation": "data visualisation",
-        "data_cleaning": "data cleaning",
-        "machine_learning": "machine learning",
-        "model_evaluation": "model evaluation",
-        "version_control": "version control",
-        "dashboards": "dashboarding",
-        "apis": "APIs",
-        "oop": "object-oriented programming",
-        "sql": "SQL",
-    }
-    for raw, label in replacements.items():
-        explanation = explanation.replace(raw, label)
-    return explanation
-
-
-def show_recommendations(recommendations: list[Recommendation]) -> None:
-    rows = [
-        (
-            '<div class="fyp-research-row fyp-research-head">'
-            "<div>Rank</div>"
-            "<div>Resource</div>"
-            "<div>Provider</div>"
-            "<div>Score</div>"
-            "<div>Explanation</div>"
-            "</div>"
-        )
-    ]
-    for recommendation in recommendations:
-        rows.append(
-            (
-                '<div class="fyp-research-row">'
-                f'<div class="fyp-research-cell fyp-research-muted">#{recommendation.rank}</div>'
-                f'<div class="fyp-research-cell"><strong>{html.escape(recommendation.title)}</strong></div>'
-                f'<div class="fyp-research-cell">{html.escape(recommendation.provider)}</div>'
-                f'<div class="fyp-research-cell fyp-research-muted">{recommendation.score:.3f}</div>'
-                f'<div class="fyp-research-cell">{html.escape(recommendation.explanation)}</div>'
-                "</div>"
-            )
-        )
-    st.markdown(
-        (
-            '<div class="fyp-research-panel">'
-            '<div class="fyp-research-table">'
-            f"{''.join(rows)}"
-            "</div>"
-            "</div>"
-        ),
-        unsafe_allow_html=True,
-    )
-
-
-def show_white_table(rows: list[dict[str, object]], columns: list[str]) -> None:
-    if not rows:
-        st.info("No rows to display.")
-        return
-    header_html = "".join(f"<th>{html.escape(column)}</th>" for column in columns)
-    body_rows = []
-    numeric_columns = {"k", "rank", "score", "precision_at_k", "recall_at_k", "ndcg_at_k"}
-    for row in rows:
-        cells = []
-        for column in columns:
-            value = row.get(column, "")
-            cell_class = ' class="numeric"' if column in numeric_columns else ""
-            cells.append(f"<td{cell_class}>{html.escape(format_table_value(value))}</td>")
-        body_rows.append(f"<tr>{''.join(cells)}</tr>")
-    st.markdown(
-        (
-            '<div class="fyp-white-table-wrap">'
-            '<table class="fyp-white-table">'
-            f"<thead><tr>{header_html}</tr></thead>"
-            f"<tbody>{''.join(body_rows)}</tbody>"
-            "</table>"
-            "</div>"
-        ),
-        unsafe_allow_html=True,
-    )
-
-
-def format_table_value(value: object) -> str:
-    if isinstance(value, float):
-        return f"{value:.4f}"
-    return str(value)
-
-
-def show_ndcg_chart(metrics: list[dict[str, object]]) -> None:
-    chart_width = 840
-    chart_height = 320
-    plot_left = 78
-    plot_top = 32
-    plot_width = 700
-    plot_height = 220
-    baseline = plot_top + plot_height
-    max_value = 1.0
-    bar_width = 120
-    gap = (plot_width - (bar_width * len(metrics))) / max(len(metrics) - 1, 1)
-
-    grid_lines = []
-    for index in range(6):
-        value = index / 5
-        y = baseline - (value / max_value) * plot_height
-        grid_lines.append(
-            f'<line x1="{plot_left}" y1="{y:.1f}" x2="{plot_left + plot_width}" y2="{y:.1f}" stroke="#e2e6df" />'
-            f'<text x="42" y="{y + 4:.1f}" fill="#42474b" font-size="12">{value:.1f}</text>'
-        )
-
-    bars = []
-    for index, row in enumerate(metrics):
-        value = float(row["ndcg_at_k"])
-        x = plot_left + index * (bar_width + gap)
-        bar_height = min(value / max_value, 1.0) * plot_height
-        y = baseline - bar_height
-        label = html.escape(str(row["model"]))
-        bars.append(
-            f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_width}" height="{bar_height:.1f}" rx="3" fill="#2f80ed" />'
-            f'<text x="{x + bar_width / 2:.1f}" y="{y - 8:.1f}" fill="#171717" font-size="13" text-anchor="middle" font-weight="700">{value:.4f}</text>'
-            f'<text x="{x + bar_width / 2:.1f}" y="{baseline + 28}" fill="#171717" font-size="12" text-anchor="middle">{label}</text>'
-        )
-
-    chart = (
-        '<div class="fyp-chart-panel">'
-        f'<svg viewBox="0 0 {chart_width} {chart_height}" role="img" aria-label="NDCG at 5 comparison chart">'
-        '<rect x="0" y="0" width="840" height="320" fill="#ffffff" />'
-        '<text x="78" y="20" fill="#171717" font-size="15" font-weight="800">NDCG@5 comparison</text>'
-        '<text x="18" y="155" fill="#171717" font-size="13" font-weight="700" transform="rotate(-90 18 155)">NDCG@5</text>'
-        f"{''.join(grid_lines)}"
-        f'<line x1="{plot_left}" y1="{baseline}" x2="{plot_left + plot_width}" y2="{baseline}" stroke="#aeb7ae" />'
-        f"{''.join(bars)}"
-        "</svg>"
-        "</div>"
-    )
-    st.markdown(chart, unsafe_allow_html=True)
 
 
 def calculate_metrics(suite: RecommenderSuite, profiles, relevance):

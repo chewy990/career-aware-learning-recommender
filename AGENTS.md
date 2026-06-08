@@ -38,6 +38,7 @@ Core idea: recommend "learn just enough", start practical work early, then deepe
 
 ## App Notes
 
+- Next codebase maintenance step: split `src/app.py` into smaller modules for UI helpers, learning path/progress logic, and Research View before adding new career tracks.
 - Learning path stages: `1. Learn just enough`, `2. Start a practical project`, `3. Deepen later`, `Optional structured tracks`.
 - Learner View is module-first where verified module data exists: show the selected module title as the main item and a small source line such as `From: DataCamp - SQL for Data Analysis`.
 - Existing `format=module` resources should show cleaner module titles and `From: Provider`.
