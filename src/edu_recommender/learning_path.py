@@ -132,8 +132,17 @@ def resource_item_source(resource: Resource, module: ResourceModule | None) -> s
     if module and module.source_url and module.date_checked:
         return f"From: {module.provider} - {resource.title}"
     if getattr(resource, "source_url", "") and getattr(resource, "date_checked", ""):
-        return f"From: {resource.provider}"
-    return ""
+        return resource_provider_source(resource)
+    return resource_provider_source(resource)
+
+
+def resource_provider_source(resource: Resource) -> str:
+    provider = resource.provider.strip()
+    if not provider:
+        return ""
+    if resource.format in {"course", "career_track"}:
+        return f"From: {provider}"
+    return f"From: {provider} - {resource.title}"
 
 
 def learning_item_reason(stage: str, item_skills: set[str]) -> str:

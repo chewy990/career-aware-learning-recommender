@@ -1,4 +1,4 @@
 model,k,precision_at_k,recall_at_k,ndcg_at_k
-popularity,5,0.2571,0.0574,0.2524
-content_based,5,0.8571,0.2044,0.8668
-hybrid,5,0.9714,0.2308,0.9758
+popularity,5,0.2889,0.0623,0.3117
+content_based,5,0.8,0.1869,0.8279
+hybrid,5,0.9778,0.225,0.9812

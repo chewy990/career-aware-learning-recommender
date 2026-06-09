@@ -53,6 +53,9 @@ class LearnerProfile:
 
 def read_resources(path: Path) -> list[Resource]:
     rows = _read_csv(path)
+    relevance_fields = [
+        field for field in rows[0].keys() if field.endswith("_relevance")
+    ] if rows else []
     resources: list[Resource] = []
     for row in rows:
         resources.append(
@@ -70,9 +73,8 @@ def read_resources(path: Path) -> list[Resource]:
                 popularity_score=float(row["popularity_score"]),
                 quality_score=float(row["quality_score"]),
                 pathway_relevance={
-                    "data_analyst": int(row["data_analyst_relevance"]),
-                    "ml_engineer": int(row["ml_engineer_relevance"]),
-                    "software_developer": int(row["software_developer_relevance"]),
+                    field.removesuffix("_relevance"): int(row.get(field, 0) or 0)
+                    for field in relevance_fields
                 },
                 description=row["description"],
                 source_url=row.get("source_url", "").strip(),
@@ -104,15 +106,14 @@ def read_resource_modules(path: Path) -> list[ResourceModule]:
 
 def read_skill_map(path: Path) -> dict[str, dict[str, int]]:
     rows = _read_csv(path)
-    skill_map: dict[str, dict[str, int]] = {
-        "data_analyst": {},
-        "ml_engineer": {},
-        "software_developer": {},
-    }
+    if not rows:
+        return {}
+    pathways = [field for field in rows[0].keys() if field != "skill"]
+    skill_map: dict[str, dict[str, int]] = {pathway: {} for pathway in pathways}
     for row in rows:
         skill = row["skill"]
-        for pathway in skill_map:
-            skill_map[pathway][skill] = int(row[pathway])
+        for pathway in pathways:
+            skill_map[pathway][skill] = int(row.get(pathway, 0) or 0)
     return skill_map
 
 

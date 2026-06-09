@@ -8,7 +8,7 @@ Project folder: `C:\Users\Admin\Documents\mods\FYP`
 
 Scope: FYP data science recommender prototype, not a full LMS. The app recommends staged learning paths from career pathway, current skills, skill gaps, completed topics, preferred difficulty, and resource metadata.
 
-Target pathways: Data Analyst, Machine Learning Engineer, Software Developer.
+Target pathways: Data Analyst, Machine Learning Engineer, Software Developer, Data Scientist.
 
 Core idea: recommend "learn just enough", start practical work early, then deepen later.
 
@@ -22,14 +22,14 @@ Core idea: recommend "learn just enough", start practical work early, then deepe
 - `data/resource_modules.csv` - verified selected-module metadata with source URL and date checked
 - `assets/desktop-background.jpg` - app banner
 - `docs/report_draft.md` - preliminary report source
-- `docs/prelim_report_draft2_jaslyn.pdf` - current exported report draft
+- `docs/CM3070_Preliminary_Project_Report_Jaslyn_Chan.pdf` - current exported report draft
 - `docs/appendices/` - appendices A-D and screenshots
 - `README.txt`, `docs/appendices/README.txt` - plain-text folder notes
 
 ## Current Submission State
 
 - Current report source is `docs/report_draft.md`; keep Markdown as the source of truth.
-- Current polished draft PDF is `docs/prelim_report_draft2_jaslyn.pdf`.
+- Current polished draft PDF is `docs/CM3070_Preliminary_Project_Report_Jaslyn_Chan.pdf`.
 - Report has exactly four chapters: Introduction, Literature Review, Project Design, Feature Prototype.
 - Appendices and References are not numbered as chapters.
 - Appendices A-D are cross-referenced; Appendix E was removed.
@@ -38,13 +38,15 @@ Core idea: recommend "learn just enough", start practical work early, then deepe
 
 ## App Notes
 
-- Next codebase maintenance step: split `src/app.py` into smaller modules for UI helpers, learning path/progress logic, and Research View before adding new career tracks.
 - Learning path stages: `1. Learn just enough`, `2. Start a practical project`, `3. Deepen later`, `Optional structured tracks`.
+- Data Scientist is available as a normal pathway and as a follow-on path from Data Analyst once the analyst project foundation is complete.
+- Custom learners first set session skill levels, then choose one or more pathways using sidebar course buttons. Session skills persist across overlapping pathways until `Reset skills`.
 - Learner View is module-first where verified module data exists: show the selected module title as the main item and a small source line such as `From: DataCamp - SQL for Data Analysis`.
-- Existing `format=module` resources should show cleaner module titles and `From: Provider`.
+- Courses and career tracks show `From: Provider`; projects/modules/tutorials/videos show `From: Provider - Title`.
 - Completion updates skills from the selected module when available; otherwise it falls back to the full resource skills.
-- Only show `From:` source lines for verified module/resource provenance with `source_url` and `date_checked`; never show vague provider-only lines such as `From: YouTube`.
-- Checking `Completed` should not reorder recommendations, swap the displayed module, leak state between profiles, or collapse the completed stage.
+- `From:` source lines should be clickable. Use exact module URLs where available; resource rows may use provider search fallbacks.
+- Checking `Completed` should not reorder recommendations, swap the displayed module, leak state between profiles, hide completed cards, or collapse completed stages into empty-state messages.
+- Switching pathways must preserve completed cards and session skills. Only `Reset progress` clears completed resources; only `Reset skills` clears saved session skills.
 - Locked items should show a lock row plus a direct unlock hint, e.g. `Complete Data cleaning or SQL practice courses to unlock.`
 - Keep `Reset progress`; do not show a progress table.
 - Keep a compact Progress summary above the learning path; keep the full Completed resources expander below the path.
@@ -62,9 +64,9 @@ Core idea: recommend "learn just enough", start practical work early, then deepe
 
 ## Metrics
 
-- popularity: `Precision@5=0.2571`, `Recall@5=0.0574`, `NDCG@5=0.2524`
-- content_based: `Precision@5=0.8571`, `Recall@5=0.2044`, `NDCG@5=0.8668`
-- hybrid: `Precision@5=0.9714`, `Recall@5=0.2308`, `NDCG@5=0.9758`
+- popularity: `Precision@5=0.2889`, `Recall@5=0.0623`, `NDCG@5=0.3117`
+- content_based: `Precision@5=0.8`, `Recall@5=0.1869`, `NDCG@5=0.8279`
+- hybrid: `Precision@5=0.9778`, `Recall@5=0.225`, `NDCG@5=0.9812`
 
 ## Commands
 

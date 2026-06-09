@@ -6,6 +6,7 @@ import html
 import sys
 from dataclasses import replace
 from pathlib import Path
+from urllib.parse import quote_plus
 
 import streamlit as st
 
@@ -498,33 +499,86 @@ def apply_visual_theme() -> None:
             background: #fff8e7;
         }
 
+        section[data-testid="stSidebar"] .stButton button {
+            border: 1px solid #c9c3ba !important;
+            background: #f7f4ee !important;
+            color: #24313a !important;
+            font-weight: 900 !important;
+        }
+
+        section[data-testid="stSidebar"] .stButton button p,
+        section[data-testid="stSidebar"] .stButton button span {
+            color: inherit !important;
+            font-weight: inherit !important;
+        }
+
+        section[data-testid="stSidebar"] .stButton button:not([kind="primary"]) p,
+        section[data-testid="stSidebar"] .stButton button:not([kind="primary"]) span,
+        section[data-testid="stSidebar"] .stButton button[data-testid="baseButton-secondary"] p,
+        section[data-testid="stSidebar"] .stButton button[data-testid="baseButton-secondary"] span {
+            color: #101820 !important;
+            font-weight: 900 !important;
+        }
+
+        section[data-testid="stSidebar"] .stButton button[kind="primary"],
+        section[data-testid="stSidebar"] .stButton button[data-testid="baseButton-primary"] {
+            border-color: var(--fyp-maroon) !important;
+            background: var(--fyp-maroon) !important;
+            color: #ffffff !important;
+        }
+
+        section[data-testid="stSidebar"] .stButton button[kind="primary"] p,
+        section[data-testid="stSidebar"] .stButton button[kind="primary"] span,
+        section[data-testid="stSidebar"] .stButton button[data-testid="baseButton-primary"] p,
+        section[data-testid="stSidebar"] .stButton button[data-testid="baseButton-primary"] span {
+            color: #ffffff !important;
+        }
+
+        section[data-testid="stSidebar"] .stButton button:hover {
+            border-color: #8a7f73 !important;
+            background: #ece6dc !important;
+            color: #101820 !important;
+        }
+
+        section[data-testid="stSidebar"] .stButton button[kind="primary"]:hover,
+        section[data-testid="stSidebar"] .stButton button[data-testid="baseButton-primary"]:hover {
+            border-color: #5f0030 !important;
+            background: #5f0030 !important;
+            color: #ffffff !important;
+        }
+
         .stCheckbox label p {
             color: var(--fyp-ink);
             font-weight: 800;
+            margin: 0;
         }
 
         .stCheckbox label {
-            gap: 0.55rem;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            width: fit-content;
         }
 
         .stCheckbox label > div:first-child {
-            width: 1.15rem;
-            height: 1.15rem;
+            width: 1.05rem;
+            height: 1.05rem;
             border-radius: 4px;
-            border: 2px solid var(--fyp-maroon);
-            background: #ffffff;
-            box-shadow: 0 0 0 3px rgba(122, 0, 60, 0.08);
+            border: 2px solid #101820;
+            background: #101820;
+            box-shadow: none;
         }
 
         .stCheckbox label > div:first-child:hover {
-            border-color: #e3204f;
-            box-shadow: 0 0 0 3px rgba(227, 32, 79, 0.14);
+            border-color: #2c3440;
+            background: #2c3440;
+            box-shadow: 0 0 0 3px rgba(16, 24, 32, 0.12);
         }
 
         .stCheckbox label:has(input:checked) > div:first-child {
-            border-color: var(--fyp-gold);
-            background: var(--fyp-maroon);
-            box-shadow: 0 0 0 3px rgba(241, 180, 52, 0.18);
+            border-color: #101820;
+            background: #101820;
+            box-shadow: none;
         }
 
         .stCheckbox label > div:first-child svg {
@@ -569,20 +623,20 @@ def apply_visual_theme() -> None:
     )
 
 
-def show_app_header() -> None:
+def show_app_header(pathway_count: int) -> None:
     hero_uri = image_data_uri(HERO_IMAGE)
     hero_markup = (
         f'<div class="fyp-hero-visual">'
         f'<img src="{hero_uri}" alt="Abstract learning path with connected data nodes and resource cards">'
         f'<div class="fyp-header-meta">'
-        f'<span class="fyp-pill">3 pathways</span>'
+        f'<span class="fyp-pill">{pathway_count} pathways</span>'
         f'<span class="fyp-pill">Hybrid model</span>'
         f'<span class="fyp-pill">Explainable</span>'
         f'</div></div>'
         if hero_uri
         else (
             '<div class="fyp-header-meta">'
-            '<span class="fyp-pill">3 pathways</span>'
+            f'<span class="fyp-pill">{pathway_count} pathways</span>'
             '<span class="fyp-pill">Hybrid model</span>'
             '<span class="fyp-pill">Explainable</span>'
             '</div>'
@@ -623,7 +677,7 @@ def main() -> None:
     modules_by_parent = modules_by_parent_resource(modules)
 
     apply_visual_theme()
-    show_app_header()
+    show_app_header(len(skill_map))
 
     profile = build_active_profile(profiles, skill_map)
     gaps = suite.skill_gaps(profile)
@@ -632,7 +686,15 @@ def main() -> None:
     learner_tab, research_tab = st.tabs(["Learner View", "Research View"])
 
     with learner_tab:
-        show_learner_view(profile, gaps, path, skill_map, resources_by_id, modules_by_parent)
+        show_learner_view(
+            suite,
+            profile,
+            gaps,
+            path,
+            skill_map,
+            resources_by_id,
+            modules_by_parent,
+        )
 
     with research_tab:
         show_research_view(suite, profile, profiles, relevance, resources, skill_map)
@@ -652,6 +714,47 @@ def build_active_profile(
     return custom_profile_sidebar(skill_map)
 
 
+def remember_session_skills(skills: dict[str, int]) -> None:
+    skill_bank = dict(st.session_state.get("session_skill_bank", {}))
+    for skill, level in skills.items():
+        skill_bank[skill] = max(skill_bank.get(skill, 0), int(level))
+    st.session_state["session_skill_bank"] = skill_bank
+
+
+def set_session_skills(skills: dict[str, int]) -> None:
+    skill_bank = dict(st.session_state.get("session_skill_bank", {}))
+    for skill, level in skills.items():
+        skill_bank[skill] = int(level)
+    st.session_state["session_skill_bank"] = skill_bank
+
+
+def remember_session_topics(topics: set[str]) -> None:
+    topic_bank = set(st.session_state.get("session_completed_topics", set()))
+    topic_bank.update(topics)
+    st.session_state["session_completed_topics"] = topic_bank
+
+
+def skills_with_session_bank(skills: dict[str, int]) -> dict[str, int]:
+    merged = dict(skills)
+    for skill, level in st.session_state.get("session_skill_bank", {}).items():
+        merged[skill] = max(merged.get(skill, 0), int(level))
+    return merged
+
+
+def topics_with_session_bank(topics: set[str]) -> set[str]:
+    return set(topics) | set(st.session_state.get("session_completed_topics", set()))
+
+
+def display_pathway(pathway: str) -> str:
+    labels = {
+        "data_analyst": "Data Analyst",
+        "data_scientist": "Data Scientist",
+        "ml_engineer": "ML Engineer",
+        "software_developer": "Software Developer",
+    }
+    return labels.get(pathway, pathway.replace("_", " ").title())
+
+
 def sample_profile_sidebar(profiles: list[LearnerProfile]) -> LearnerProfile:
     selected_profile_name = st.sidebar.selectbox(
         "Learner profile",
@@ -664,10 +767,12 @@ def sample_profile_sidebar(profiles: list[LearnerProfile]) -> LearnerProfile:
     if st.session_state.get("active_signature") != signature:
         clear_learning_path_snapshot()
         st.session_state.pop("pending_skill_slider_sync", None)
+        remember_session_skills(profile.current_skills)
+        remember_session_topics(profile.completed_topics)
         st.session_state["active_signature"] = signature
-        st.session_state["active_skills"] = dict(profile.current_skills)
-        st.session_state["active_completed_topics"] = set(profile.completed_topics)
-        st.session_state["completed_resources"] = []
+        st.session_state["active_skills"] = skills_with_session_bank(profile.current_skills)
+        st.session_state["active_completed_topics"] = topics_with_session_bank(profile.completed_topics)
+        st.session_state.setdefault("completed_resources", [])
         st.session_state["last_progress_update"] = None
 
     return replace(
@@ -683,11 +788,54 @@ def sample_profile_sidebar(profiles: list[LearnerProfile]) -> LearnerProfile:
 
 
 def custom_profile_sidebar(skill_map: dict[str, dict[str, int]]) -> LearnerProfile:
-    target_pathway = st.sidebar.selectbox(
-        "Target pathway",
-        ["data_analyst", "ml_engineer", "software_developer"],
-        format_func=lambda value: value.replace("_", " ").title(),
+    pathway_options = list(skill_map.keys())
+    all_pathway_skills = sorted(
+        {
+            skill
+            for pathway_skills in skill_map.values()
+            for skill, weight in pathway_skills.items()
+            if weight > 0
+        },
+        key=lambda skill: display_skill(skill),
     )
+    selected_pathway = st.session_state.get("selected_course_pathway", pathway_options[0])
+    if selected_pathway not in skill_map:
+        selected_pathway = pathway_options[0]
+    st.session_state["selected_course_pathway"] = selected_pathway
+    signature = f"custom:{selected_pathway}"
+    apply_pending_skill_slider_sync(signature)
+
+    st.sidebar.markdown("### 1. Skill levels")
+    st.sidebar.caption("These levels are saved for every course in this session.")
+    session_skills = dict(st.session_state.get("session_skill_bank", {}))
+    for skill in all_pathway_skills:
+        slider_key = session_skill_slider_key(skill)
+        if slider_key not in st.session_state:
+            st.session_state[slider_key] = int(session_skills.get(skill, 0))
+        session_skills[skill] = st.sidebar.slider(
+            display_skill(skill),
+            min_value=0,
+            max_value=3,
+            key=slider_key,
+        )
+    set_session_skills(session_skills)
+
+    st.sidebar.markdown("### 2. Choose course")
+    for pathway in pathway_options:
+        is_selected = pathway == selected_pathway
+        if st.sidebar.button(
+            display_pathway(pathway),
+            key=f"course_button_{pathway}",
+            type="primary" if is_selected else "secondary",
+            use_container_width=True,
+        ):
+            st.session_state["selected_course_pathway"] = pathway
+            clear_learning_path_snapshot()
+            st.session_state.pop("pending_skill_slider_sync", None)
+            st.session_state.pop("active_signature", None)
+            st.rerun()
+    target_pathway = st.session_state["selected_course_pathway"]
+
     preferred_difficulty = st.sidebar.select_slider(
         "Preferred starting difficulty",
         options=[1, 2, 3],
@@ -696,42 +844,27 @@ def custom_profile_sidebar(skill_map: dict[str, dict[str, int]]) -> LearnerProfi
         help="Controls how difficult the first recommended materials should feel. This is not your current skill level.",
     )
 
-    signature = f"custom:{target_pathway}"
-    pathway_skills = {
-        skill: weight for skill, weight in skill_map[target_pathway].items() if weight > 0
-    }
     if st.session_state.get("active_signature") != signature:
         clear_learning_path_snapshot()
         st.session_state.pop("pending_skill_slider_sync", None)
         st.session_state["active_signature"] = signature
-        st.session_state["active_skills"] = {skill: 0 for skill in pathway_skills}
-        st.session_state["active_completed_topics"] = set()
-        st.session_state["completed_resources"] = []
-        st.session_state["last_progress_update"] = None
-        for skill in pathway_skills:
-            st.session_state[skill_slider_key(signature, skill)] = 0
-    apply_pending_skill_slider_sync(signature)
-
-    st.sidebar.markdown("### What you already know")
-    st.sidebar.caption(
-        "Higher skill levels reduce the gap for that topic, so fewer beginner resources for that skill are prioritised."
-    )
-    for skill, pathway_weight in sorted(pathway_skills.items(), key=lambda item: (-item[1], item[0])):
-        current_value = int(st.session_state["active_skills"].get(skill, 0))
-        slider_key = skill_slider_key(signature, skill)
-        if slider_key not in st.session_state:
-            st.session_state[slider_key] = current_value
-        st.session_state["active_skills"][skill] = st.sidebar.slider(
-            skill.replace("_", " ").title(),
-            min_value=0,
-            max_value=3,
-            key=slider_key,
-            help=f"Pathway importance: {pathway_weight}/3",
+        st.session_state["active_skills"] = skills_with_session_bank(
+            {skill: 0 for skill in all_pathway_skills}
         )
+        st.session_state["active_completed_topics"] = set(
+            st.session_state.get("session_completed_topics", set())
+        )
+        st.session_state.setdefault("completed_resources", [])
+        st.session_state["last_progress_update"] = None
+    st.session_state["active_skills"] = skills_with_session_bank(
+        dict(st.session_state.get("active_skills", {}))
+    )
 
     completed_topics = {
         skill for skill, level in st.session_state["active_skills"].items() if level >= 1
     } | set(st.session_state["active_completed_topics"])
+    remember_session_skills(st.session_state["active_skills"])
+    remember_session_topics(completed_topics)
     weak_skills = infer_weak_skills(st.session_state["active_skills"], target_pathway, completed_topics)
 
     return LearnerProfile(
@@ -765,7 +898,7 @@ def infer_weak_skills(
 def show_profile(profile: LearnerProfile) -> None:
     st.markdown(
         f"**{profile.name}**  \n"
-        f"Pathway: **{profile.target_pathway.replace('_', ' ').title()}**  \n"
+        f"Pathway: **{display_pathway(profile.target_pathway)}**  \n"
         f"Preferred level: **{difficulty_label(profile.preferred_difficulty)}**"
     )
     completed = display_skill_list(profile.completed_topics)
@@ -881,21 +1014,70 @@ def show_completion_control(
     if st.button("Reset progress"):
         reset_progress_state()
         st.rerun()
+    if st.button("Reset skills"):
+        reset_skill_state()
+        st.rerun()
+
+
+def source_url_for_item(resource: Resource, module: ResourceModule | None) -> str:
+    if module and module.source_url:
+        return module.source_url
+    if getattr(resource, "source_url", ""):
+        return resource.source_url
+    return provider_search_url(resource.provider, resource.title)
+
+
+def provider_search_url(provider: str, title: str) -> str:
+    query = quote_plus(title)
+    provider_query = quote_plus(f"{provider} {title}")
+    provider_key = provider.strip().lower()
+    search_urls = {
+        "datacamp": f"https://www.datacamp.com/search?q={query}",
+        "coursera": f"https://www.coursera.org/search?query={query}",
+        "youtube": f"https://www.youtube.com/results?search_query={provider_query}",
+        "edx": f"https://www.edx.org/search?q={query}",
+        "freecodecamp": f"https://www.freecodecamp.org/search?query={query}",
+        "kaggle learn": "https://www.kaggle.com/learn",
+        "udemy": f"https://www.udemy.com/courses/search/?q={query}",
+        "ibm skillsbuild": f"https://skillsbuild.org/search?query={query}",
+        "khan academy": f"https://www.khanacademy.org/search?page_search_query={query}",
+        "udacity": f"https://www.udacity.com/catalog?search={query}",
+        "atlassian": f"https://www.atlassian.com/search?query={query}",
+        "storytelling with data": "https://www.storytellingwithdata.com/",
+        "google cloud": f"https://cloud.google.com/s/results?q={query}",
+    }
+    return search_urls.get(provider_key, f"https://www.google.com/search?q={provider_query}")
+
+
+def show_resource_source(resource: Resource, module: ResourceModule | None) -> None:
+    item_source = resource_item_source(resource, module)
+    if not item_source:
+        return
+    source_url = source_url_for_item(resource, module)
+    if source_url:
+        st.markdown(f"[{item_source}]({source_url})")
+    else:
+        st.caption(item_source)
 
 
 def reset_progress_state() -> None:
     state_keys = [
-        "active_signature",
-        "active_skills",
-        "active_completed_topics",
         "completed_resources",
         "last_progress_update",
         "display_learning_path",
         "display_learning_path_signature",
         "display_learning_path_start_skills",
+        "display_learning_path_cache",
+        "display_learning_path_signature_cache",
+        "display_learning_path_start_skills_cache",
         "display_learning_items",
         "path_locked_by_completion",
         "last_completed_stage",
+        "show_optional_data_scientist_path",
+        "optional_data_scientist_start_skills",
+        "optional_data_scientist_completed_topics",
+        "optional_data_scientist_path",
+        "optional_data_scientist_path_signature",
     ]
     widget_prefixes = ("complete_", "done_")
     st.session_state["progress_reset_version"] = (
@@ -909,11 +1091,29 @@ def reset_progress_state() -> None:
             st.session_state.pop(key, None)
 
 
+def reset_skill_state() -> None:
+    reset_progress_state()
+    state_keys = [
+        "active_signature",
+        "active_skills",
+        "active_completed_topics",
+        "pending_skill_slider_sync",
+        "session_skill_bank",
+        "session_completed_topics",
+    ]
+    widget_prefixes = ("skill_level_",)
+    for key in state_keys:
+        st.session_state.pop(key, None)
+    for key in list(st.session_state.keys()):
+        key_name = str(key)
+        if any(prefix in key_name for prefix in widget_prefixes):
+            st.session_state.pop(key, None)
+
+
 def clear_learning_path_snapshot() -> None:
     st.session_state.pop("display_learning_path", None)
     st.session_state.pop("display_learning_path_signature", None)
     st.session_state.pop("display_learning_path_start_skills", None)
-    st.session_state.pop("display_learning_items", None)
     st.session_state.pop("path_locked_by_completion", None)
 
 
@@ -979,6 +1179,7 @@ def complete_learning_item(
     }
     reinforced_skills = sorted(skills) if not skill_changes else []
     st.session_state["active_skills"] = active_skills
+    remember_session_skills(active_skills)
     active_signature = st.session_state.get("active_signature", profile.profile_id)
     if active_signature.startswith("custom:"):
         st.session_state["pending_skill_slider_sync"] = {
@@ -986,6 +1187,7 @@ def complete_learning_item(
             "skills": active_skills,
         }
     st.session_state["active_completed_topics"] = completed_topics
+    remember_session_topics(completed_topics)
     st.session_state["completed_resources"] = completed_resources
     st.session_state["last_progress_update"] = {
         "title": title,
@@ -1025,21 +1227,57 @@ def get_stable_learning_path(
     total_k: int,
 ) -> dict[str, list[Recommendation]]:
     signature = learning_path_signature(profile)
+    snapshot_key = learning_path_snapshot_key(profile)
+    path_cache = st.session_state.setdefault("display_learning_path_cache", {})
+    signature_cache = st.session_state.setdefault("display_learning_path_signature_cache", {})
+    start_skills_cache = st.session_state.setdefault("display_learning_path_start_skills_cache", {})
+    cached_path = path_cache.get(snapshot_key)
+    cached_path_has_completion = (
+        cached_path is not None
+        and learning_path_has_completed_resource(cached_path)
+    )
     should_rebuild = (
-        "display_learning_path" not in st.session_state
+        snapshot_key not in path_cache
         or (
-            st.session_state.get("display_learning_path_signature") != signature
+            signature_cache.get(snapshot_key) != signature
+            and not cached_path_has_completion
             and not st.session_state.get("path_locked_by_completion", False)
         )
     )
     if should_rebuild:
-        st.session_state["display_learning_path"] = build_learning_path(
+        path_cache[snapshot_key] = build_learning_path(
             suite, profile, resources_by_id, total_k=total_k
         )
-        st.session_state["display_learning_path_signature"] = signature
-        st.session_state["display_learning_path_start_skills"] = dict(profile.current_skills)
+        signature_cache[snapshot_key] = signature
+        start_skills_cache[snapshot_key] = dict(profile.current_skills)
         st.session_state["path_locked_by_completion"] = False
-    return st.session_state["display_learning_path"]
+    st.session_state["display_learning_path"] = path_cache[snapshot_key]
+    st.session_state["display_learning_path_signature"] = signature
+    st.session_state["display_learning_path_start_skills"] = start_skills_cache.get(
+        snapshot_key,
+        dict(profile.current_skills),
+    )
+    return path_cache[snapshot_key]
+
+
+def learning_path_snapshot_key(profile: LearnerProfile) -> str:
+    active_signature = st.session_state.get("active_signature", profile.profile_id)
+    return f"{active_signature}|difficulty:{profile.preferred_difficulty}"
+
+
+def learning_path_has_completed_resource(path: dict[str, list[Recommendation]]) -> bool:
+    completed_resource_ids = {
+        item.get("resource_id")
+        for item in st.session_state.get("completed_resources", [])
+        if item.get("resource_id")
+    }
+    if not completed_resource_ids:
+        return False
+    return any(
+        recommendation.resource_id in completed_resource_ids
+        for recommendations in path.values()
+        for recommendation in recommendations
+    )
 
 
 def learning_path_signature(profile: LearnerProfile) -> str:
@@ -1058,12 +1296,17 @@ def skill_slider_key(signature: str, skill: str) -> str:
     return f"skill_level_{signature}_{skill}"
 
 
+def session_skill_slider_key(skill: str) -> str:
+    return f"session_skill_level_{skill}"
+
+
 def apply_pending_skill_slider_sync(signature: str) -> None:
     pending = st.session_state.get("pending_skill_slider_sync")
     if not pending or pending.get("signature") != signature:
         return
     for skill, level in pending["skills"].items():
         st.session_state[skill_slider_key(signature, skill)] = level
+        st.session_state[session_skill_slider_key(skill)] = level
     st.session_state.pop("pending_skill_slider_sync", None)
 
 
@@ -1079,6 +1322,10 @@ def show_learning_path(
         "display_learning_path_start_skills",
         profile.current_skills,
     )
+    completed_resource_ids = {
+        item.get("item_id", f"resource:{item.get('resource_id')}")
+        for item in st.session_state.get("completed_resources", [])
+    }
     skill_targets = skill_map.get(profile.target_pathway, {})
     for stage, recommendations in path.items():
         expanded = stage.startswith("1.") or stage.startswith("2.") or (
@@ -1108,20 +1355,19 @@ def show_learning_path(
                 item_difficulty = module.difficulty_level if module else resource.difficulty_level
                 item_duration = module.duration_hours if module else resource.duration_hours
                 item_reason = learning_item_reason(stage, item_skills)
-                if not can_improve_in_stage(stage, path_start_skills, item_skills):
+                completed = item_id in completed_resource_ids
+                if (
+                    not completed
+                    and not can_improve_in_stage(stage, path_start_skills, item_skills)
+                ):
                     continue
                 shown_count += 1
                 with st.container(border=True):
-                    completed_resource_ids = {
-                        item.get("item_id", f"resource:{item.get('resource_id')}")
-                        for item in st.session_state.get("completed_resources", [])
-                    }
                     reset_version = st.session_state.get("progress_reset_version", 0)
                     active_signature = st.session_state.get("active_signature", profile.profile_id)
                     checkbox_key = (
                         f"complete_{reset_version}_{active_signature}_{stage}_{item_id}"
                     )
-                    completed = item_id in completed_resource_ids
                     ready, not_ready_reason = completion_readiness(
                         stage,
                         profile.current_skills,
@@ -1174,9 +1420,7 @@ def show_learning_path(
                         )
                     else:
                         st.markdown(f"**{item_title}**")
-                    item_source = resource_item_source(resource, module)
-                    if item_source:
-                        st.caption(item_source)
+                    show_resource_source(resource, module)
                     st.caption(
                         f"{difficulty_label(item_difficulty)} | {item_duration:g} hours"
                     )
@@ -1189,6 +1433,7 @@ def show_learning_path(
 
 
 def show_learner_view(
+    suite: RecommenderSuite,
     profile: LearnerProfile,
     gaps: dict[str, float],
     path: dict[str, list[Recommendation]],
@@ -1212,6 +1457,14 @@ def show_learner_view(
         include_completed_resources=False,
     )
 
+    show_optional_data_scientist_path(
+        suite,
+        profile,
+        skill_map,
+        resources_by_id,
+        modules_by_parent,
+    )
+
     st.subheader("Your Learning Path")
     st.caption("Learn only the critical basics, then practise early. Deepen later only after useful practice.")
     show_learning_path(path, resources_by_id, profile, gaps, skill_map, modules_by_parent)
@@ -1220,6 +1473,237 @@ def show_learner_view(
 
     with st.expander("View skill gaps"):
         show_skill_gaps(profile, gaps, skill_map, path, resources_by_id, modules_by_parent)
+
+
+def should_show_data_scientist_suggestion(
+    profile: LearnerProfile,
+    gaps: dict[str, float],
+    path: dict[str, list[Recommendation]],
+    resources_by_id: dict[str, Resource],
+    modules_by_parent: dict[str, list[ResourceModule]],
+) -> bool:
+    if profile.target_pathway != "data_analyst":
+        return False
+
+    required_levels = {
+        "sql": 2,
+        "statistics": 2,
+        "data_cleaning": 2,
+        "data_visualisation": 2,
+        "python": 1,
+    }
+    if any(profile.current_skills.get(skill, 0) < level for skill, level in required_levels.items()):
+        return False
+
+    completed_item_ids = {
+        item.get("item_id", f"resource:{item.get('resource_id')}")
+        for item in st.session_state.get("completed_resources", [])
+    }
+    path_start_skills = st.session_state.get(
+        "display_learning_path_start_skills",
+        profile.current_skills,
+    )
+    stage = "2. Start a practical project"
+    visible_item_ids: set[str] = set()
+
+    for recommendation in path.get(stage, []):
+        resource = resources_by_id[recommendation.resource_id]
+        module = stable_selected_module_for_resource(
+            profile,
+            stage,
+            resource,
+            modules_by_parent.get(resource.resource_id, []),
+            gaps,
+        )
+        item_id = f"module:{module.module_id}" if module else f"resource:{resource.resource_id}"
+        item_skills = module.skills if module else resource.skills
+        if can_improve_in_stage(stage, path_start_skills, item_skills):
+            visible_item_ids.add(item_id)
+
+    return bool(visible_item_ids) and visible_item_ids.issubset(completed_item_ids)
+
+
+def data_scientist_bridge_profile(
+    profile: LearnerProfile,
+    skill_map: dict[str, dict[str, int]],
+) -> LearnerProfile:
+    scientist_targets = skill_map.get("data_scientist", {})
+    starting_skills = dict(
+        st.session_state.get("optional_data_scientist_start_skills", profile.current_skills)
+    )
+    completed_topics = set(
+        st.session_state.get("optional_data_scientist_completed_topics", profile.completed_topics)
+    )
+    current_skills = skills_with_session_bank(starting_skills)
+    for skill, target_level in scientist_targets.items():
+        if target_level > 0:
+            current_skills.setdefault(skill, 0)
+    weak_skills = {
+        skill
+        for skill, target_level in scientist_targets.items()
+        if target_level > 0 and current_skills.get(skill, 0) < target_level
+    }
+    return LearnerProfile(
+        profile_id=f"{profile.profile_id}_DS_OPTION",
+        name="Data Scientist Path",
+        target_pathway="data_scientist",
+        current_skills=current_skills,
+        completed_topics=completed_topics,
+        weak_skills=weak_skills,
+        preferred_difficulty=max(2, profile.preferred_difficulty),
+        max_duration_hours=profile.max_duration_hours,
+        preferred_format=profile.preferred_format,
+    )
+
+
+def show_optional_data_scientist_path(
+    suite: RecommenderSuite,
+    profile: LearnerProfile,
+    skill_map: dict[str, dict[str, int]],
+    resources_by_id: dict[str, Resource],
+    modules_by_parent: dict[str, list[ResourceModule]],
+) -> None:
+    if not st.session_state.get("show_optional_data_scientist_path"):
+        return
+    if "data_scientist" not in skill_map:
+        return
+
+    optional_profile = data_scientist_bridge_profile(profile, skill_map)
+    optional_gaps = suite.skill_gaps(optional_profile)
+    optional_signature = (
+        f"{profile.profile_id}|data_scientist|"
+        f"{sorted(st.session_state.get('optional_data_scientist_start_skills', {}).items())}|"
+        f"{sorted(st.session_state.get('optional_data_scientist_completed_topics', set()))}"
+    )
+    if st.session_state.get("optional_data_scientist_path_signature") != optional_signature:
+        st.session_state["optional_data_scientist_path"] = build_learning_path(
+            suite,
+            optional_profile,
+            resources_by_id,
+            total_k=12,
+        )
+        st.session_state["optional_data_scientist_path_signature"] = optional_signature
+    optional_path = st.session_state["optional_data_scientist_path"]
+
+    st.subheader("Data Scientist Path")
+    st.caption(
+        "This does not replace your Data Analyst path. It starts from your current analyst skills, "
+        "then adds machine learning, model evaluation, and deeper Python practice."
+    )
+    if st.button("Hide Data Scientist path"):
+        st.session_state["show_optional_data_scientist_path"] = False
+        st.session_state.pop("optional_data_scientist_path", None)
+        st.session_state.pop("optional_data_scientist_path_signature", None)
+        st.rerun()
+
+    show_optional_learning_path(
+        optional_profile,
+        optional_gaps,
+        optional_path,
+        skill_map["data_scientist"],
+        resources_by_id,
+        modules_by_parent,
+    )
+
+
+def show_optional_learning_path(
+    profile: LearnerProfile,
+    gaps: dict[str, float],
+    path: dict[str, list[Recommendation]],
+    skill_targets: dict[str, int],
+    resources_by_id: dict[str, Resource],
+    modules_by_parent: dict[str, list[ResourceModule]],
+) -> None:
+    path_start_skills = st.session_state.get(
+        "optional_data_scientist_start_skills",
+        profile.current_skills,
+    )
+    completed_item_ids = {
+        item.get("item_id", f"resource:{item.get('resource_id')}")
+        for item in st.session_state.get("completed_resources", [])
+    }
+    for stage, recommendations in path.items():
+        with st.expander(stage, expanded=stage.startswith("1.") or stage.startswith("2.")):
+            shown_count = 0
+            for recommendation in recommendations:
+                resource = resources_by_id[recommendation.resource_id]
+                module = selected_module_for_resource(
+                    profile,
+                    resource,
+                    modules_by_parent.get(resource.resource_id, []),
+                    gaps,
+                )
+                item_title = module.module_title if module else module_style_resource_title(resource)
+                item_skills = module.skills if module else resource.skills
+                item_difficulty = module.difficulty_level if module else resource.difficulty_level
+                item_duration = module.duration_hours if module else resource.duration_hours
+                item_id = f"module:{module.module_id}" if module else f"resource:{resource.resource_id}"
+                completed = item_id in completed_item_ids
+                if (
+                    not completed
+                    and not can_improve_in_stage(stage, path_start_skills, item_skills)
+                ):
+                    continue
+                shown_count += 1
+                with st.container(border=True):
+                    reset_version = st.session_state.get("progress_reset_version", 0)
+                    active_signature = st.session_state.get("active_signature", profile.profile_id)
+                    checkbox_key = (
+                        f"complete_{reset_version}_{active_signature}_data_scientist_{stage}_{item_id}"
+                    )
+                    ready, not_ready_reason = completion_readiness(
+                        stage,
+                        profile.current_skills,
+                        item_skills,
+                    )
+                    if ready or completed:
+                        st.checkbox(
+                            "Completed",
+                            value=completed,
+                            key=checkbox_key,
+                            disabled=completed,
+                            on_change=complete_learning_item,
+                            args=(
+                                profile,
+                                item_id,
+                                item_title,
+                                item_skills,
+                                resource.topic,
+                                resource.resource_id,
+                                stage,
+                                resource_item_source(resource, module),
+                                difficulty_label(item_difficulty),
+                                item_duration,
+                                learning_item_reason(stage, item_skills),
+                                skill_targets,
+                            ),
+                        )
+                    else:
+                        st.markdown(
+                            '<div class="fyp-locked-row">'
+                            '<span class="fyp-lock-icon">&#128274;</span>'
+                            '<span>Locked</span>'
+                            '</div>',
+                            unsafe_allow_html=True,
+                        )
+                        st.markdown(
+                            f'<div class="fyp-lock-hint">{html.escape(not_ready_reason)}</div>',
+                            unsafe_allow_html=True,
+                        )
+                    if completed:
+                        st.markdown(
+                            f'<span class="fyp-completed-title">{html.escape(item_title)}</span>',
+                            unsafe_allow_html=True,
+                        )
+                    else:
+                        st.markdown(f"**{item_title}**")
+                    show_resource_source(resource, module)
+                    st.caption(f"{difficulty_label(item_difficulty)} | {item_duration:g} hours")
+                    item_reason = learning_item_reason(stage, item_skills)
+                    if item_reason:
+                        st.write(item_reason)
+            if shown_count == 0:
+                st.info("No useful Data Scientist next steps for this stage right now.")
 
 
 def should_show_mastery_celebration(
@@ -1241,11 +1725,7 @@ def should_show_mastery_celebration(
         "display_learning_path_start_skills",
         profile.current_skills,
     )
-    target_skills = {
-        skill for skill, target in skill_map[profile.target_pathway].items() if target > 0
-    }
     visible_item_ids: set[str] = set()
-    visible_target_skills: set[str] = set()
 
     for stage, recommendations in path.items():
         for recommendation in recommendations:
@@ -1262,13 +1742,8 @@ def should_show_mastery_celebration(
             if not can_improve_in_stage(stage, path_start_skills, item_skills):
                 continue
             visible_item_ids.add(item_id)
-            visible_target_skills.update(item_skills & target_skills)
 
-    if not visible_item_ids or not visible_item_ids.issubset(completed_item_ids):
-        return False
-    if not visible_target_skills:
-        return False
-    return all(profile.current_skills.get(skill, 0) >= 3 for skill in visible_target_skills)
+    return bool(visible_item_ids) and visible_item_ids.issubset(completed_item_ids)
 
 
 def show_progress_summary(
@@ -1301,6 +1776,29 @@ def show_progress_summary(
             '</div>',
             unsafe_allow_html=True,
         )
+    if (
+        gaps is not None
+        and path is not None
+        and resources_by_id is not None
+        and modules_by_parent is not None
+        and not st.session_state.get("show_optional_data_scientist_path")
+        and should_show_data_scientist_suggestion(
+            profile,
+            gaps,
+            path,
+            resources_by_id,
+            modules_by_parent,
+        )
+    ):
+        st.info(
+            "**Data Scientist.** "
+            "Your Data Analyst foundation can lead into predictive modelling when you are ready."
+        )
+        if st.button("Explore Data Scientist path"):
+            st.session_state["show_optional_data_scientist_path"] = True
+            st.session_state["optional_data_scientist_start_skills"] = dict(profile.current_skills)
+            st.session_state["optional_data_scientist_completed_topics"] = set(profile.completed_topics)
+            st.rerun()
     last_update = st.session_state.get("last_progress_update")
     if last_update:
         st.success(f"Last completed: {last_update['title']}")
