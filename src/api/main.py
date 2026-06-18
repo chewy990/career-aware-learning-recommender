@@ -111,6 +111,10 @@ def difficulty_label(level: int) -> str:
     return {1: "Beginner", 2: "Intermediate", 3: "Advanced"}.get(level, "Mixed")
 
 
+def skill_level_label(level: int) -> str:
+    return {0: "Not started", 1: "Basic", 2: "Working knowledge", 3: "Confident"}.get(int(level), "Not started")
+
+
 def provider_search_url(provider: str, title: str) -> str:
     query = quote_plus(title)
     provider_query = quote_plus(f"{provider} {title}")
@@ -189,7 +193,14 @@ def item_payload(
         after_cap = skill_completion_cap(stage, before, skill, skill_targets)
         after = min(before + 1, after_cap) if before < after_cap else before
         if after != before:
-            skill_changes.append({"skill": skill, "label": display_skill(skill), "before": before, "after": after})
+            skill_changes.append({
+                "skill": skill,
+                "label": display_skill(skill),
+                "before": before,
+                "after": after,
+                "before_label": skill_level_label(before),
+                "after_label": skill_level_label(after),
+            })
     return {
         "item_id": item_id,
         "resource_id": resource.resource_id,
@@ -369,6 +380,8 @@ def learning_path(payload: LearningPathRequest) -> dict[str, object]:
                 "label": display_skill(skill),
                 "current": profile.current_skills.get(skill, 0),
                 "target": skill_targets.get(skill, 0),
+                "current_label": skill_level_label(profile.current_skills.get(skill, 0)),
+                "target_label": skill_level_label(skill_targets.get(skill, 0)),
                 "priority": "High" if score >= 0.75 else "Medium" if score >= 0.4 else "Low",
             }
             for skill, score in sorted(gaps.items(), key=lambda item: (-item[1], item[0]))
@@ -395,7 +408,14 @@ def complete_item(payload: CompleteItemRequest) -> dict[str, object]:
     if payload.topic:
         completed_topics.add(payload.topic)
     changes = [
-        {"skill": skill, "label": display_skill(skill), "before": before.get(skill, 0), "after": active_skills.get(skill, 0)}
+        {
+            "skill": skill,
+            "label": display_skill(skill),
+            "before": before.get(skill, 0),
+            "after": active_skills.get(skill, 0),
+            "before_label": skill_level_label(before.get(skill, 0)),
+            "after_label": skill_level_label(active_skills.get(skill, 0)),
+        }
         for skill in sorted(payload.skills)
         if before.get(skill, 0) != active_skills.get(skill, 0)
     ]

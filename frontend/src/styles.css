@@ -101,8 +101,6 @@ a:hover {
 
 .primary,
 .ghost,
-.segmented button,
-.sample-strip button,
 .pathway-card {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
@@ -119,9 +117,7 @@ a:hover {
 
 .primary:active,
 .ghost:active,
-.pathway-card:active,
-.segmented button:active,
-.sample-strip button:active {
+.pathway-card:active {
   transform: translateY(1px) scale(0.99);
 }
 
@@ -207,25 +203,34 @@ a:hover {
   letter-spacing: 0;
 }
 
-.segmented {
+.session-summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  gap: 10px;
   margin: 22px 0;
 }
 
-.segmented button,
-.ghost,
-.sample-strip button {
-  color: #f5f1ea;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 10px 12px;
+.session-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.045);
 }
 
-.segmented button.active,
-.segmented button:hover,
-.ghost:hover,
-.sample-strip button:hover {
+.session-summary span {
+  color: #918a96;
+  font-size: 0.86rem;
+}
+
+.session-summary strong {
+  color: #f5f1ea;
+  text-align: right;
+}
+
+.ghost:hover {
   border-color: rgba(219, 72, 126, 0.62);
   background: rgba(219, 72, 126, 0.16);
 }
@@ -268,7 +273,7 @@ a:hover {
 
 .skill-row {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) minmax(170px, 280px) 36px;
+  grid-template-columns: minmax(160px, 1fr) minmax(210px, 300px) minmax(130px, 170px);
   gap: 16px;
   align-items: center;
   border-top: 1px solid rgba(255, 255, 255, 0.09);
@@ -286,17 +291,34 @@ a:hover {
   color: #8f8995;
 }
 
+.skill-slider {
+  display: grid;
+  gap: 7px;
+}
+
 .skill-row input {
   accent-color: #c84177;
 }
 
-.sample-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  color: #9b96a0;
+.skill-row b {
+  color: #f5d5df;
+  font-size: 0.9rem;
+  text-align: right;
 }
+
+.skill-scale {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  color: #827b88;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.skill-scale span:last-child {
+  text-align: right;
+}
+
 
 .pathway-grid {
   display: grid;

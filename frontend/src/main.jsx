@@ -10,16 +10,62 @@ const DIFFICULTIES = [
   { value: 3, label: "Advanced" },
 ];
 
+const SKILL_LEVELS = [
+  { value: 0, label: "Not started" },
+  { value: 1, label: "Basic" },
+  { value: 2, label: "Working knowledge" },
+  { value: 3, label: "Confident" },
+];
+
+function skillLevelLabel(level) {
+  return SKILL_LEVELS.find((item) => item.value === Number(level))?.label || "Not started";
+}
+
 const emptySession = {
   skills: {},
   completedTopics: [],
   completedItemIds: [],
   completedItems: [],
+  pathSnapshots: {},
   selectedPathway: "",
   preferredDifficulty: 1,
   preferredFormat: "course",
 };
 
+function snapshotKey(session) {
+  return `${session.selectedPathway}|${session.preferredDifficulty}|${session.preferredFormat}`;
+}
+
+function syncCompletedFlags(pathData, completedItemIds) {
+  if (!pathData) return pathData;
+  const completed = new Set(completedItemIds || []);
+  return {
+    ...pathData,
+    stages: (pathData.stages || []).map((stage) => ({
+      ...stage,
+      items: (stage.items || []).map((item) => ({
+        ...item,
+        completed: completed.has(item.item_id),
+      })),
+    })),
+  };
+}
+
+function updatePathProfile(pathData, nextSession) {
+  if (!pathData?.profile) return pathData;
+  return {
+    ...pathData,
+    profile: {
+      ...pathData.profile,
+      current_skills: nextSession.skills,
+      completed_topics: nextSession.completedTopics,
+    },
+  };
+}
+
+function markPathItemCompleted(pathData, itemId, nextSession) {
+  return updatePathProfile(syncCompletedFlags(pathData, nextSession.completedItemIds), nextSession);
+}
 function loadSession() {
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -35,7 +81,6 @@ function saveSession(session) {
 
 function App() {
   const [meta, setMeta] = useState(null);
-  const [profiles, setProfiles] = useState([]);
   const [session, setSession] = useState(loadSession);
   const [step, setStep] = useState("skills");
   const [path, setPath] = useState(null);
@@ -52,15 +97,10 @@ function App() {
     async function loadMeta() {
       try {
         setLoading(true);
-        const [pathwaysRes, profilesRes] = await Promise.all([
-          fetch(`${API_BASE}/api/pathways`),
-          fetch(`${API_BASE}/api/profiles`),
-        ]);
-        if (!pathwaysRes.ok || !profilesRes.ok) throw new Error("API did not respond cleanly.");
+        const pathwaysRes = await fetch(`${API_BASE}/api/pathways`);
+        if (!pathwaysRes.ok) throw new Error("API did not respond cleanly.");
         const pathways = await pathwaysRes.json();
-        const profileData = await profilesRes.json();
         setMeta(pathways);
-        setProfiles(profileData.profiles || []);
         setSession((current) => ({
           ...current,
           selectedPathway: current.selectedPathway || pathways.pathways?.[0]?.id || "",
@@ -88,6 +128,12 @@ function App() {
 
   async function loadLearningPath(nextSession = session) {
     if (!nextSession.selectedPathway) return;
+    const key = snapshotKey(nextSession);
+    const savedSnapshot = nextSession.pathSnapshots?.[key];
+    if (savedSnapshot && nextSession.completedItemIds.length > 0) {
+      setPath(updatePathProfile(syncCompletedFlags(savedSnapshot, nextSession.completedItemIds), nextSession));
+      return;
+    }
     setPathLoading(true);
     setError("");
     try {
@@ -107,7 +153,19 @@ function App() {
         }),
       });
       if (!response.ok) throw new Error("Could not generate the learning path.");
-      setPath(await response.json());
+      const generatedPath = await response.json();
+      const pathWithFlags = syncCompletedFlags(generatedPath, nextSession.completedItemIds);
+      setPath(pathWithFlags);
+      setSession((current) => {
+        if (snapshotKey(current) !== key || current.pathSnapshots?.[key]) return current;
+        return {
+          ...current,
+          pathSnapshots: {
+            ...(current.pathSnapshots || {}),
+            [key]: pathWithFlags,
+          },
+        };
+      });
     } catch (err) {
       setError(err.message || "Could not generate the learning path.");
     } finally {
@@ -134,18 +192,6 @@ function App() {
     setStep("path");
   }
 
-  function applySampleProfile(profile) {
-    const next = {
-      ...session,
-      selectedPathway: profile.target_pathway,
-      skills: { ...session.skills, ...profile.current_skills },
-      completedTopics: Array.from(new Set([...session.completedTopics, ...profile.completed_topics])),
-      preferredDifficulty: profile.preferred_difficulty,
-      preferredFormat: profile.preferred_format,
-    };
-    setSession(next);
-    setStep("path");
-  }
 
   async function completeItem(stageName, item) {
     if (session.completedItemIds.includes(item.item_id)) return;
@@ -171,20 +217,25 @@ function App() {
       source_url: item.source_url,
       reason: item.reason,
     };
+    const nextCompletedIds = [...session.completedItemIds, item.item_id];
     const next = {
       ...session,
       skills: result?.current_skills || session.skills,
       completedTopics: result?.completed_topics || session.completedTopics,
-      completedItemIds: [...session.completedItemIds, item.item_id],
+      completedItemIds: nextCompletedIds,
       completedItems: [...session.completedItems, completedRecord],
+      pathSnapshots: {
+        ...(session.pathSnapshots || {}),
+        [snapshotKey(session)]: path || session.pathSnapshots?.[snapshotKey(session)],
+      },
     };
     setLastUpdate({ title: item.title, skillChanges: result?.skill_changes || [] });
     setSession(next);
-    await loadLearningPath(next);
+    setPath(markPathItemCompleted(path, item.item_id, next));
   }
 
   function resetProgress() {
-    const next = { ...session, completedItemIds: [], completedItems: [], completedTopics: [] };
+    const next = { ...session, completedItemIds: [], completedItems: [], completedTopics: [], pathSnapshots: {} };
     setSession(next);
     setLastUpdate(null);
     if (step === "path") loadLearningPath(next);
@@ -207,14 +258,23 @@ function App() {
 
       <main className="app-grid">
         <aside className="control-panel">
-          <div className="panel-eyebrow">Workspace</div>
-          <h2>{step === "skills" ? "1. Input skill level" : "2. Choose and continue"}</h2>
-          <p>Saved skills stay available when you switch pathways with overlapping requirements.</p>
+          <div className="panel-eyebrow">Session</div>
+          <h2>Your saved setup</h2>
+          <p>This side only shows settings and reset controls. Complete the active step in the main panel.</p>
 
-          <div className="segmented">
-            <button className={step === "skills" ? "active" : ""} onClick={() => setStep("skills")}>Skills</button>
-            <button className={step === "courses" ? "active" : ""} onClick={() => setStep("courses")}>Courses</button>
-            <button className={step === "path" ? "active" : ""} onClick={() => setStep("path")}>Path</button>
+          <div className="session-summary">
+            <div>
+              <span>Current step</span>
+              <strong>{step === "skills" ? "Enter skills" : step === "courses" ? "Choose pathway" : "Learning path"}</strong>
+            </div>
+            <div>
+              <span>Saved skills</span>
+              <strong>{Object.values(session.skills).filter((level) => Number(level) > 0).length}</strong>
+            </div>
+            <div>
+              <span>Completed</span>
+              <strong>{session.completedItemIds.length}</strong>
+            </div>
           </div>
 
           <label className="field">
@@ -237,8 +297,6 @@ function App() {
               session={session}
               updateSkill={updateSkill}
               onNext={() => setStep("courses")}
-              profiles={profiles}
-              applySampleProfile={applySampleProfile}
             />
           )}
           {step === "courses" && (
@@ -283,33 +341,32 @@ function Hero({ onStart, pathwayCount }) {
   );
 }
 
-function SkillStep({ skills, session, updateSkill, onNext, profiles, applySampleProfile }) {
+
+function SkillStep({ skills, session, updateSkill, onNext }) {
   return (
     <div className="stack">
       <div className="section-heading">
         <span>Step 1</span>
-        <h2>Set your current level</h2>
-        <p>Use 0 for no confidence and 3 for strong confidence. These levels are saved in this browser session.</p>
+        <h2>Indicate current skills</h2>
+        <p>Move each slider to match what you can do today. Scroll through the skills, then use the button at the bottom to choose your course.</p>
       </div>
       <div className="skill-list">
         {skills.map((skill) => (
           <label className="skill-row" key={skill.id}>
             <span>
               <strong>{skill.label}</strong>
-              <small>Target {skill.target || "support"}</small>
             </span>
-            <input type="range" min="0" max="3" value={session.skills[skill.id] || 0} onChange={(event) => updateSkill(skill.id, event.target.value)} />
-            <b>{session.skills[skill.id] || 0}</b>
+            <div className="skill-slider">
+              <input type="range" min="0" max="3" value={session.skills[skill.id] || 0} aria-label={`${skill.label} level`} onChange={(event) => updateSkill(skill.id, event.target.value)} />
+              <div className="skill-scale" aria-hidden="true">
+                {SKILL_LEVELS.map((level) => <span key={level.value}>{level.label}</span>)}
+              </div>
+            </div>
+            <b>{skillLevelLabel(session.skills[skill.id] || 0)}</b>
           </label>
         ))}
       </div>
-      <div className="sample-strip">
-        <span>Sample profiles</span>
-        {profiles.slice(0, 5).map((profile) => (
-          <button key={profile.profile_id} onClick={() => applySampleProfile(profile)}>{profile.name}</button>
-        ))}
-      </div>
-      <button className="primary" onClick={onNext}>Choose course</button>
+      <button className="primary" onClick={onNext}>Continue to choose course</button>
     </div>
   );
 }
@@ -319,8 +376,8 @@ function CourseStep({ pathways, selected, choosePathway }) {
     <div className="stack">
       <div className="section-heading">
         <span>Step 2</span>
-        <h2>Choose a pathway</h2>
-        <p>You can switch pathways any time. Shared skills, such as Python or SQL, stay saved.</p>
+        <h2>Choose one pathway to start</h2>
+        <p>You can switch later with one click. Shared skills, such as Python or SQL, stay saved.</p>
       </div>
       <div className="pathway-grid">
         {pathways.map((pathway) => (
@@ -351,7 +408,7 @@ function PathStep({ path, pathLoading, session, selectedPathway, onComplete, las
         <div className="progress-note">
           <strong>Completed {lastUpdate.title}</strong>
           {lastUpdate.skillChanges.length > 0 ? (
-            <p>{lastUpdate.skillChanges.map((change) => `${change.label} ${change.before} > ${change.after}`).join(", ")}</p>
+            <p>{lastUpdate.skillChanges.map((change) => `${change.label}: ${change.before_label || skillLevelLabel(change.before)} > ${change.after_label || skillLevelLabel(change.after)}`).join(", ")}</p>
           ) : <p>Skills reinforced.</p>}
         </div>
       )}
@@ -382,7 +439,7 @@ function PathStep({ path, pathLoading, session, selectedPathway, onComplete, las
           <div className="gap-row" key={gap.skill}>
             <span>{gap.label}</span>
             <small>{gap.priority}</small>
-            <b>{gap.current} / {gap.target}</b>
+            <b>{gap.current_label || skillLevelLabel(gap.current)} &gt; {gap.target_label || skillLevelLabel(gap.target)}</b>
           </div>
         ))}
       </div>
