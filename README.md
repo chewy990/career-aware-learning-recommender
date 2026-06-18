@@ -8,11 +8,7 @@ The core learning strategy is:
 
 This is a recommendation-engine prototype, not a full LMS.
 
-## Current App
-
-The current working prototype is a Streamlit app. It contains the interactive learner experience, recommendations, checkboxes, session skill bank, progress messages, pathway switching, and research/evaluation view.
-
-A future custom version may replace the Streamlit UI with a React frontend and FastAPI backend while reusing the existing Python recommender logic.
+## Current App\n\nThe current working prototype remains available in Streamlit. A new React + FastAPI version is being added as the polished app direction: React owns the full user interface, and FastAPI reuses the existing Python recommender modules and CSV data.
 
 ## Pathways
 
@@ -76,30 +72,41 @@ assets/                     App visual assets
 data/                       Curated resources, learner profiles, skills, judgements
 docs/                       Report drafts, methodology notes, appendices
 outputs/                    Generated metrics, recommendations, report output
-src/app.py                  Streamlit app
-src/run_pipeline.py          Pipeline and evaluation runner
-src/edu_recommender/         Data loading, models, evaluation, path logic, UI helpers
-requirements.txt             Python dependencies for Streamlit deployment
+frontend/                   React user interface\nsrc/api/main.py              FastAPI backend for the React app\nsrc/app.py                  Streamlit backup/current prototype\nsrc/run_pipeline.py          Pipeline and evaluation runner\nsrc/edu_recommender/         Data loading, models, evaluation, path logic, UI helpers\nrequirements.txt             Python dependencies for Streamlit and FastAPI
 ```
 
 ## Run Locally
 
-Install dependencies if needed:
+Install Python dependencies if needed:
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-Run the Streamlit app:
+Run the FastAPI backend:
 
 ```powershell
-python -m streamlit run src\app.py
+python -m uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Run the React frontend in another terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev
 ```
 
 Then open:
 
 ```text
-http://localhost:8501
+http://127.0.0.1:5173
+```
+
+Run the Streamlit backup app:
+
+```powershell
+python -m streamlit run src\app.py
 ```
 
 Run the evaluation pipeline:
@@ -108,9 +115,7 @@ Run the evaluation pipeline:
 python src\run_pipeline.py
 ```
 
-The pipeline writes recommendation and metric outputs into `outputs/`.
-
-## Deploy On Streamlit Community Cloud
+The pipeline writes recommendation and metric outputs into `outputs/`.\n## Deploy On Streamlit Community Cloud
 
 Use these settings:
 
@@ -142,3 +147,4 @@ Source evidence and methodology notes are documented in:
 ## Security Notes
 
 Do not commit local secrets or deployment keys. The repository ignores `.env*`, local dependency folders, and debug artifacts.
+

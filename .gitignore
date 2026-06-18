@@ -22,12 +22,17 @@ outputs/app_compile_check.pyc
 .env.*
 *.env
 
-# Local dependency/helper tooling
+# Dependency folders
 node_modules/
-package.json
-package-lock.json
-scripts/
+frontend/node_modules/
+frontend/dist/
+
+# Local root helper tooling
+/package.json
+/package-lock.json
+/scripts/
 
 # Local debug and UI check artifacts
 outputs/ui-checks/
 outputs/streamlit-debug-*.txt
+

@@ -1,0 +1,21 @@
+{
+    "name":  "career-aware-learning-recommender-frontend",
+    "version":  "0.1.0",
+    "private":  true,
+    "type":  "module",
+    "scripts":  {
+                    "dev":  "C:\\PROGRA~1\\nodejs\\node.exe ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173",
+                    "build":  "C:\\PROGRA~1\\nodejs\\node.exe ./node_modules/vite/bin/vite.js build",
+                    "preview":  "C:\\PROGRA~1\\nodejs\\node.exe ./node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173"
+                },
+    "dependencies":  {
+                         "@vitejs/plugin-react":  "latest",
+                         "vite":  "latest",
+                         "typescript":  "latest",
+                         "react":  "latest",
+                         "react-dom":  "latest"
+                     },
+    "devDependencies":  {
+
+                        }
+}

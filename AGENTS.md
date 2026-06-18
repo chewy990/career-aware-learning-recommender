@@ -75,10 +75,7 @@ Current Streamlit Community Cloud settings:
 - Main file path: `src/app.py`
 - Requirements file: `requirements.txt`
 
-Future React/FastAPI deployment will likely split into:
-
-- Frontend: Vercel or Netlify
-- Backend API: Render, Railway, or similar Python host
+React/FastAPI local development:\n\n- Backend: python -m uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000\n- Frontend: cd frontend; npm install; npm run dev\n\nFuture React/FastAPI deployment will likely split into:\n\n- Frontend: Vercel or Netlify\n- Backend API: Render, Railway, or similar Python host
 
 ## Current Metrics
 
@@ -106,3 +103,4 @@ Run checks:
 ```
 
 Do not run Telegram completion notifications; the notifier was removed from this machine.
+
