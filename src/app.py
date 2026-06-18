@@ -226,6 +226,7 @@ def apply_visual_theme() -> None:
             border: 1px solid var(--fyp-line);
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.72);
+            color: var(--fyp-ink);
             box-shadow: 0 12px 28px rgba(28, 31, 32, 0.06);
             overflow: hidden;
         }
@@ -245,6 +246,7 @@ def apply_visual_theme() -> None:
             border-color: rgba(122, 0, 60, 0.14);
             border-radius: 8px;
             background: var(--fyp-surface);
+            color: var(--fyp-ink);
             box-shadow: 0 8px 22px rgba(20, 20, 20, 0.05);
         }
 
@@ -748,6 +750,7 @@ def topics_with_session_bank(topics: set[str]) -> set[str]:
 def display_pathway(pathway: str) -> str:
     labels = {
         "data_analyst": "Data Analyst",
+        "data_engineer": "Data Engineer",
         "data_scientist": "Data Scientist",
         "ml_engineer": "ML Engineer",
         "software_developer": "Software Developer",

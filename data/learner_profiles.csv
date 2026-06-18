@@ -8,3 +8,5 @@ P006,Beginner Software Developer,software_developer,programming:1;oop:0;apis:0;d
 P007,Advanced Data Analyst,data_analyst,python:1;sql:1;statistics:0;data_visualisation:1;data_cleaning:0;dashboards:0,python;sql,statistics;data_cleaning;dashboards,2,10,project
 P008,Beginner Data Scientist,data_scientist,python:1;sql:1;statistics:0;data_cleaning:1;data_visualisation:1;machine_learning:0;model_evaluation:0,python;sql,statistics;machine_learning;model_evaluation,1,10,course
 P009,Intermediate Data Scientist,data_scientist,python:2;sql:2;statistics:2;data_cleaning:2;data_visualisation:1;machine_learning:1;model_evaluation:0,python;sql;statistics;data_cleaning,machine_learning;model_evaluation,2,12,project
+P010,Beginner Data Engineer,data_engineer,python:1;sql:1;databases:0;data_cleaning:1;deployment:0;apis:0;version_control:0,python;sql,databases;data_cleaning;deployment;apis;version_control,1,10,course
+P011,Intermediate Data Engineer,data_engineer,python:2;sql:2;databases:2;data_cleaning:2;programming:1;version_control:1;apis:1;deployment:0,python;sql;databases;data_cleaning,deployment;apis;version_control,2,12,project

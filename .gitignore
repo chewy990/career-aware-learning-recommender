@@ -16,3 +16,19 @@ Thumbs.db
 
 # Temporary compile check
 outputs/app_compile_check.pyc
+
+# Local secrets and API keys
+.env
+.env.*
+*.env
+
+# Local JS/Framer helper tooling
+node_modules/
+package.json
+package-lock.json
+scripts/
+
+# Local debug and UI check artifacts
+outputs/framer-cms/
+outputs/ui-checks/
+outputs/streamlit-debug-*.txt
