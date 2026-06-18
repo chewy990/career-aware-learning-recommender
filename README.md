@@ -1,4 +1,4 @@
-﻿# Career-Aware Learning Recommender
+# Career-Aware Learning Recommender
 
 A final-year project prototype for recommending computing learning paths by career goal, current skill level, skill gaps, completed topics, preferred difficulty, and curated learning-resource metadata.
 
@@ -8,12 +8,11 @@ The core learning strategy is:
 
 This is a recommendation-engine prototype, not a full LMS.
 
-## Live App Structure
+## Current App
 
-The project is designed as two connected parts:
+The current working prototype is a Streamlit app. It contains the interactive learner experience, recommendations, checkboxes, session skill bank, progress messages, pathway switching, and research/evaluation view.
 
-- **Framer front door**: a polished public landing site with five pathway choices.
-- **Streamlit recommender**: the actual interactive prototype with recommendations, checkboxes, session skills, progress messages, and pathway switching.
+A future custom version may replace the Streamlit UI with a React frontend and FastAPI backend while reusing the existing Python recommender logic.
 
 ## Pathways
 
@@ -123,8 +122,6 @@ Main file path: src/app.py
 
 Streamlit Cloud will use `requirements.txt` from the repository root.
 
-After deployment, update the Framer site to embed or link to the public Streamlit URL instead of `localhost`.
-
 ## Data Notes
 
 The skill map uses a 0-3 scale:
@@ -144,4 +141,4 @@ Source evidence and methodology notes are documented in:
 
 ## Security Notes
 
-Do not commit local secrets or Framer API keys. The repository ignores `.env*`, `node_modules/`, local Framer helper scripts, and debug artifacts.
+Do not commit local secrets or deployment keys. The repository ignores `.env*`, local dependency folders, and debug artifacts.

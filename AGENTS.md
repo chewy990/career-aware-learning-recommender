@@ -1,4 +1,4 @@
-﻿# AGENTS.md
+# AGENTS.md
 
 ## Project
 
@@ -9,6 +9,12 @@ Local project folder: `C:\Users\Admin\Documents\mods\FYP`
 This is an FYP prototype, not a full LMS. It recommends staged learning paths from career pathway, current skill levels, skill gaps, completed topics, preferred difficulty, and curated resource metadata.
 
 Core idea: **learn just enough, build early, deepen later**.
+
+## Product Direction
+
+Current working app: Streamlit prototype in `src/app.py`.
+
+Planned polished app direction: React frontend plus FastAPI backend, reusing the existing Python recommender modules and CSV data. Framer is no longer part of the main project architecture.
 
 ## Pathways
 
@@ -35,7 +41,7 @@ Data Scientist can also appear as a follow-on path from Data Analyst after the p
 - `data/skill_map.csv` - pathway skill requirements
 - `data/learner_profiles.csv` - sample learners
 - `data/relevance_judgements.csv` - evaluation labels
-- `assets/desktop-background.jpg` - app/Framer-style hero image
+- `assets/desktop-background.jpg` - app hero image
 - `outputs/` - generated recommendations, metrics, and report output
 
 ## Streamlit App Rules
@@ -60,28 +66,19 @@ Important UX rules:
 - Show the purple congratulatory mastery message for every fully completed pathway.
 - Keep Research View readable with wrapped explanations and generated metrics.
 
-## Framer Front
-
-Main Framer project: `Jaslyn - FYP online courses web app`.
-
-Backup Framer copy: `Jaslyn - FYP online courses web app (copy)`; do not edit unless explicitly asked.
-
-Framer is the public front door only: landing page plus five pathway choices. The real recommender logic, checkboxes, session skills, completion messages, and pathway progression stay in Streamlit.
-
-Published Framer URL currently uses the `proud-areas-955516.framer.app` domain. The Streamlit app should be deployed publicly and embedded/linked from Framer; do not rely on `localhost` for examiner access.
-
-Never commit Framer API keys, `.env*`, `node_modules/`, or local Framer helper scripts.
-
 ## Deployment
 
-Streamlit Community Cloud settings:
+Current Streamlit Community Cloud settings:
 
 - Repository: `chewy990/career-aware-learning-recommender`
 - Branch: `main`
 - Main file path: `src/app.py`
 - Requirements file: `requirements.txt`
 
-After Streamlit deployment, update Framer's interactive pathway link/embed from `http://localhost:8501/` to the public `https://...streamlit.app` URL.
+Future React/FastAPI deployment will likely split into:
+
+- Frontend: Vercel or Netlify
+- Backend API: Render, Railway, or similar Python host
 
 ## Current Metrics
 
