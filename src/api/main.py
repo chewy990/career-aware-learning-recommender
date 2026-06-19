@@ -20,9 +20,11 @@ from edu_recommender.data import (  # noqa: E402
     ResourceModule,
     read_profiles,
     read_resource_modules,
+    read_relevance_judgements,
     read_resources,
     read_skill_map,
 )
+from edu_recommender.evaluation import evaluate_recommendations  # noqa: E402
 from edu_recommender.learning_path import (  # noqa: E402
     build_learning_path,
     can_improve_in_stage,
@@ -38,6 +40,8 @@ from edu_recommender.models import RecommenderSuite  # noqa: E402
 
 DATA_DIR = ROOT / "data"
 TOP_K = 12
+EVALUATION_K = 5
+MODELS = ["popularity", "content_based", "hybrid"]
 
 
 class LearningPathRequest(BaseModel):
@@ -83,14 +87,16 @@ def project_data() -> tuple[
     list[ResourceModule],
     dict[str, dict[str, int]],
     list[LearnerProfile],
+    dict[str, set[str]],
     RecommenderSuite,
 ]:
     resources = read_resources(DATA_DIR / "resources.csv")
     modules = read_resource_modules(DATA_DIR / "resource_modules.csv")
     skill_map = read_skill_map(DATA_DIR / "skill_map.csv")
     profiles = read_profiles(DATA_DIR / "learner_profiles.csv")
+    relevance = read_relevance_judgements(DATA_DIR / "relevance_judgements.csv")
     suite = RecommenderSuite(resources, skill_map)
-    return resources, modules, skill_map, profiles, suite
+    return resources, modules, skill_map, profiles, relevance, suite
 
 
 def display_pathway(pathway: str) -> str:
@@ -179,6 +185,8 @@ def item_payload(
     gaps: dict[str, float],
     completed_item_ids: set[str],
     skill_targets: dict[str, int],
+    score: float | None = None,
+    explanation: str | None = None,
 ) -> dict[str, object]:
     item_id = f"module:{module.module_id}" if module else f"resource:{resource.resource_id}"
     item_title = module.module_title if module else module_style_resource_title(resource)
@@ -216,6 +224,8 @@ def item_payload(
         "source": resource_item_source(resource, module),
         "source_url": source_url_for_item(resource, module),
         "reason": learning_item_reason(stage, item_skills),
+        "score": score,
+        "explanation": explanation or learning_item_reason(stage, item_skills),
         "completed": completed,
         "ready": ready or completed,
         "locked_reason": "" if ready or completed else locked_reason,
@@ -294,7 +304,7 @@ def health() -> dict[str, str]:
 
 @app.get("/api/pathways")
 def pathways() -> dict[str, object]:
-    _, _, skill_map, _, _ = project_data()
+    _, _, skill_map, _, _, _ = project_data()
     all_skills = sorted({skill for targets in skill_map.values() for skill, level in targets.items() if level > 0})
     return {
         "pathways": [
@@ -315,7 +325,7 @@ def pathways() -> dict[str, object]:
 
 @app.get("/api/profiles")
 def profiles() -> dict[str, object]:
-    _, _, _, profile_rows, _ = project_data()
+    _, _, _, profile_rows, _, _ = project_data()
     return {
         "profiles": [
             {
@@ -337,7 +347,7 @@ def profiles() -> dict[str, object]:
 
 @app.post("/api/learning-path")
 def learning_path(payload: LearningPathRequest) -> dict[str, object]:
-    resources, modules, skill_map, _, suite = project_data()
+    resources, modules, skill_map, _, _, suite = project_data()
     resources_by_id = {resource.resource_id: resource for resource in resources}
     modules_by_parent = modules_by_parent_resource(modules)
     profile = make_profile(payload, skill_map)
@@ -357,7 +367,17 @@ def learning_path(payload: LearningPathRequest) -> dict[str, object]:
                 modules_by_parent.get(resource.resource_id, []),
                 gaps,
             )
-            item = item_payload(profile, stage, resource, module, gaps, completed_item_ids, skill_targets)
+            item = item_payload(
+                profile,
+                stage,
+                resource,
+                module,
+                gaps,
+                completed_item_ids,
+                skill_targets,
+                score=recommendation.score,
+                explanation=recommendation.explanation,
+            )
             if item["completed"] or item["can_improve"]:
                 stage_items.append(item)
         stages.append({"name": stage, "items": stage_items})
@@ -424,7 +444,7 @@ def complete_item(payload: CompleteItemRequest) -> dict[str, object]:
 
 @app.post("/api/research/recommendations")
 def research_recommendations(payload: ResearchRequest) -> dict[str, object]:
-    _, _, _, profiles_rows, suite = project_data()
+    _, _, _, profiles_rows, _, suite = project_data()
     profile = next((row for row in profiles_rows if row.profile_id == payload.profile_id), None)
     if not profile:
         raise HTTPException(status_code=404, detail="Unknown profile")
@@ -441,4 +461,31 @@ def research_recommendations(payload: ResearchRequest) -> dict[str, object]:
             }
             for item in recommendations
         ]
+    }
+
+
+@app.get("/api/research/metrics")
+def research_metrics() -> dict[str, object]:
+    _, _, _, profile_rows, relevance, suite = project_data()
+    recommendations_by_model = {
+        model: {
+            profile.profile_id: suite.recommend(profile, model=model, top_k=EVALUATION_K)
+            for profile in profile_rows
+        }
+        for model in MODELS
+    }
+    return {"metrics": evaluate_recommendations(recommendations_by_model, relevance, k=EVALUATION_K)}
+
+
+@app.get("/api/research/dataset-summary")
+def research_dataset_summary() -> dict[str, object]:
+    resources, modules, skill_map, profile_rows, relevance, _ = project_data()
+    return {
+        "learning_resources": len(resources),
+        "verified_modules": len(modules),
+        "learner_profiles": len(profile_rows),
+        "relevance_profiles": len(relevance),
+        "pathways": len(skill_map),
+        "skills": len({skill for targets in skill_map.values() for skill, level in targets.items() if level > 0}),
+        "output_folder": "outputs",
     }

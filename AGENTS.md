@@ -47,10 +47,18 @@ Data Scientist can also appear as a follow-on path from Data Analyst after the p
 
 ## Current UX Rules
 
-- User flow: indicate current skills first, then choose a pathway/course.
+- React user flow: Landing -> Pathway Selection -> Skill Setup -> Course/Home Dashboard.
+- Keep the landing hero headline: `Learn just enough. Build early. Deepen later.`
+- Pathway Selection should show pathway cards only. If generated courses already exist, show `Back to Courses`.
+- Skill Setup should show the selected pathway's 5 core skill sliders and `Preferred course difficulty`.
+- Course/Home Dashboard is the main home after generation and can hold multiple generated pathway courses.
+- Dashboard should show all selected/generated pathways as tabs/chips and one active pathway course at a time.
+- Switching pathway tabs should feel smooth, using a light slide/fade transition.
+- Dashboard actions should include: Landing page, Choose new pathway, Research view, Reset skills, Reset progress.
 - React skill levels use words everywhere: `Not started`, `Basic`, `Working knowledge`, `Confident`.
 - Do not show sample profile presets in the learner flow.
 - Session skills persist across pathway switches and overlapping skills.
+- Multiple generated pathway courses share global skills, completed topics, completed item IDs, and completed item history.
 - Completed resources must stay visible and keep their original order.
 - Completing an item must not reorder, hide, or collapse recommendations.
 - Use checkboxes labelled `Completed` beside resources.
@@ -59,7 +67,12 @@ Data Scientist can also appear as a follow-on path from Data Analyst after the p
 - Source lines must be clickable and formatted like `From: Provider - Module title`; whole courses may use `From: Provider`.
 - Broad tracks should appear only as optional structured references.
 - Show the purple congratulatory mastery message for every fully completed pathway.
-- Keep Research View readable with wrapped explanations and generated metrics.
+- Keep Research View readable with wrapped explanations, current-learner relevant course cards, generated metrics, NDCG@5 chart, dataset summary, and collapsed evaluation-profile examples.
+
+## Git Rules
+
+- Always check with the user before committing anything to git.
+- Do not commit or push until the user explicitly approves the commit.
 
 ## Deployment
 
