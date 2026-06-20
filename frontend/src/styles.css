@@ -51,17 +51,33 @@ a:hover {
 
 .hero {
   position: relative;
-  min-height: 560px;
+  width: 100vw;
+  min-height: calc(100dvh - 120px);
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
-  gap: 48px;
-  align-items: center;
-  padding: 36px 0 44px;
-  overflow: hidden;
+  place-items: center;
+  margin-left: calc(50% - 50vw);
+  padding: 72px 18px;
+  overflow: clip;
+  text-align: center;
+  background: #07070a url("/landing-hero.jpg") center / cover no-repeat;
+}
+
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0.6) 72%),
+    linear-gradient(180deg, rgba(7, 7, 10, 0.2), rgba(7, 7, 10, 0.72));
 }
 
 .hero-copy {
-  max-width: 680px;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  max-width: 880px;
+  padding: 0 18px;
 }
 
 .pill,
@@ -80,8 +96,9 @@ a:hover {
 }
 
 .hero h1 {
-  max-width: 760px;
-  margin: 18px 0 18px;
+  max-width: 880px;
+  margin: 0;
+  text-shadow: 0 18px 70px rgba(0, 0, 0, 0.54);
   font-size: clamp(3rem, 8vw, 6.7rem);
   line-height: 0.94;
   letter-spacing: 0;
@@ -95,7 +112,8 @@ a:hover {
 }
 
 .hero p {
-  max-width: 620px;
+  max-width: 600px;
+  margin: 18px 0 0;
   font-size: 1.05rem;
 }
 
@@ -119,60 +137,6 @@ a:hover {
 .ghost:active,
 .pathway-card:active {
   transform: translateY(1px) scale(0.99);
-}
-
-.hero-system {
-  position: relative;
-  min-height: 420px;
-}
-
-.orbit {
-  position: absolute;
-  inset: 60px 0 auto auto;
-  width: min(42vw, 520px);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  transform: rotateX(64deg) rotateZ(-16deg);
-  box-shadow: inset 0 0 70px rgba(164, 37, 91, 0.18), 0 34px 90px rgba(0, 0, 0, 0.38);
-}
-
-.orbit::before {
-  content: "";
-  position: absolute;
-  inset: 10%;
-  border-radius: inherit;
-  border: 26px solid rgba(203, 57, 111, 0.18);
-  filter: blur(0.3px);
-}
-
-.orbit-b {
-  inset: 96px 34px auto auto;
-  width: min(34vw, 420px);
-  opacity: 0.78;
-}
-
-.signal-card {
-  position: absolute;
-  width: 188px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
-  padding: 18px;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(14px);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 48px rgba(0,0,0,0.24);
-  font-weight: 900;
-}
-
-.signal-card.top {
-  top: 42px;
-  right: 30px;
-}
-
-.signal-card.bottom {
-  right: 180px;
-  bottom: 42px;
 }
 
 .app-grid {
@@ -251,6 +215,65 @@ a:hover {
   background: #131219;
 }
 
+.field input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  padding: 12px;
+  color: #f5f1ea;
+  background: #131219;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: 2px solid rgba(219, 72, 126, 0.42);
+  outline-offset: 2px;
+}
+
+.password-field {
+  position: relative;
+  display: grid;
+}
+
+.password-field input {
+  padding-right: 48px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 47%;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: #cbbfcb;
+  background: transparent;
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  color: #f5d5df;
+  background: rgba(219, 72, 126, 0.16);
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid rgba(219, 72, 126, 0.42);
+  outline-offset: 2px;
+}
+
+.password-toggle svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .field small {
   color: #8f8995;
   line-height: 1.45;
@@ -259,6 +282,51 @@ a:hover {
 .button-stack {
   display: grid;
   gap: 10px;
+}
+
+.ghost.subtle {
+  color: #b9b1bd;
+  background: rgba(255,255,255,0.025);
+}
+
+.auth-shell {
+  min-height: 560px;
+  display: grid;
+  place-items: center;
+}
+
+.auth-panel {
+  width: min(100%, 500px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 28px;
+  background: rgba(255,255,255,0.055);
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.24);
+}
+
+.auth-form {
+  display: grid;
+  gap: 2px;
+  margin-top: 22px;
+}
+
+.auth-form .primary {
+  margin-top: 0;
+}
+
+.auth-toggle {
+  margin-top: 20px;
+  border: 0;
+  padding: 0;
+  color: #eeb5c8;
+  background: transparent;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.auth-toggle:hover {
+  color: #f5d5df;
 }
 
 .inline-action {
@@ -475,6 +543,42 @@ a:hover {
   animation: course-slide 240ms ease both;
 }
 
+.danger-zone {
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 16px;
+}
+
+.danger-zone h3 {
+  margin: 0 0 6px;
+  font-size: 0.98rem;
+}
+
+.danger-zone p {
+  margin: 0 0 12px;
+  color: #8f8995;
+  line-height: 1.55;
+}
+
+.delete-pathway-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.danger-button {
+  border: 1px solid rgba(255, 94, 108, 0.32);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #ffc6cc;
+  background: rgba(255, 94, 108, 0.08);
+  font-weight: 800;
+}
+
+.danger-button:hover {
+  border-color: rgba(255, 94, 108, 0.58);
+  background: rgba(255, 94, 108, 0.14);
+}
+
 @keyframes course-slide {
   from {
     opacity: 0;
@@ -576,6 +680,17 @@ a:hover {
   grid-template-columns: minmax(0, 1.4fr) minmax(150px, 0.8fr) minmax(110px, 0.45fr);
   gap: 14px;
   align-items: end;
+}
+
+.research-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.research-header .section-heading {
+  min-width: 0;
 }
 
 .current-research {
@@ -903,29 +1018,15 @@ a:hover {
     padding-top: 16px;
   }
 
-  .hero,
   .app-grid,
   .pathway-grid,
-  .research-controls {
+  .research-controls,
+  .research-header {
     grid-template-columns: 1fr;
   }
 
-  .hero {
-    min-height: auto;
-    gap: 18px;
-  }
-
-  .hero-system {
-    min-height: 260px;
-  }
-
-  .orbit {
-    width: min(88vw, 440px);
-    right: 0;
-  }
-
-  .signal-card.bottom {
-    right: 18px;
+  .research-header {
+    display: grid;
   }
 
   .control-panel {

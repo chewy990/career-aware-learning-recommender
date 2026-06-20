@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import sys
+import hashlib
+import secrets
+import sqlite3
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote_plus
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -39,9 +42,11 @@ from edu_recommender.learning_path import (  # noqa: E402
 from edu_recommender.models import RecommenderSuite  # noqa: E402
 
 DATA_DIR = ROOT / "data"
+AUTH_DB_PATH = ROOT / "data" / "auth.sqlite3"
 TOP_K = 12
 EVALUATION_K = 5
 MODELS = ["popularity", "content_based", "hybrid"]
+PBKDF2_ITERATIONS = 210_000
 
 
 class LearningPathRequest(BaseModel):
@@ -71,6 +76,11 @@ class ResearchRequest(BaseModel):
     top_k: int = 5
 
 
+class AuthRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=80)
+    password: str = Field(min_length=1, max_length=200)
+
+
 app = FastAPI(title="Career-Aware Learning Recommender API")
 app.add_middleware(
     CORSMiddleware,
@@ -97,6 +107,75 @@ def project_data() -> tuple[
     relevance = read_relevance_judgements(DATA_DIR / "relevance_judgements.csv")
     suite = RecommenderSuite(resources, skill_map)
     return resources, modules, skill_map, profiles, relevance, suite
+
+
+def auth_connection() -> sqlite3.Connection:
+    connection = sqlite3.connect(AUTH_DB_PATH)
+    connection.row_factory = sqlite3.Row
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            password_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS sessions (
+            token TEXT PRIMARY KEY,
+            username TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(username) REFERENCES users(username)
+        )
+        """
+    )
+    connection.commit()
+    return connection
+
+
+def normalise_username(username: str) -> str:
+    return username.strip().lower()
+
+
+def hash_password(password: str, salt: str) -> str:
+    digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        bytes.fromhex(salt),
+        PBKDF2_ITERATIONS,
+    )
+    return digest.hex()
+
+
+def create_session_token(username: str) -> str:
+    token = secrets.token_urlsafe(32)
+    with auth_connection() as connection:
+        connection.execute(
+            "INSERT INTO sessions (token, username) VALUES (?, ?)",
+            (token, username),
+        )
+    return token
+
+
+def auth_payload(username: str, token: str) -> dict[str, str]:
+    return {"username": username, "token": token}
+
+
+def require_user(authorization: str | None = Header(default=None)) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not logged in")
+    token = authorization.removeprefix("Bearer ").strip()
+    with auth_connection() as connection:
+        row = connection.execute(
+            "SELECT username FROM sessions WHERE token = ?",
+            (token,),
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=401, detail="Session expired")
+    return str(row["username"])
 
 
 def display_pathway(pathway: str) -> str:
@@ -302,6 +381,54 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.post("/api/auth/register")
+def register(payload: AuthRequest) -> dict[str, str]:
+    username = normalise_username(payload.username)
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required")
+    salt = secrets.token_hex(16)
+    password_hash = hash_password(payload.password, salt)
+    try:
+        with auth_connection() as connection:
+            connection.execute(
+                "INSERT INTO users (username, password_hash, salt) VALUES (?, ?, ?)",
+                (username, password_hash, salt),
+            )
+    except sqlite3.IntegrityError as exc:
+        raise HTTPException(status_code=409, detail="Username already exists") from exc
+    return auth_payload(username, create_session_token(username))
+
+
+@app.post("/api/auth/login")
+def login(payload: AuthRequest) -> dict[str, str]:
+    username = normalise_username(payload.username)
+    with auth_connection() as connection:
+        row = connection.execute(
+            "SELECT username, password_hash, salt FROM users WHERE username = ?",
+            (username,),
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=401, detail="Username or password is incorrect")
+    password_hash = hash_password(payload.password, str(row["salt"]))
+    if not secrets.compare_digest(password_hash, str(row["password_hash"])):
+        raise HTTPException(status_code=401, detail="Username or password is incorrect")
+    return auth_payload(str(row["username"]), create_session_token(str(row["username"])))
+
+
+@app.get("/api/auth/me")
+def auth_me(username: str = Depends(require_user)) -> dict[str, str]:
+    return {"username": username}
+
+
+@app.post("/api/auth/logout")
+def logout(authorization: str | None = Header(default=None)) -> dict[str, str]:
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.removeprefix("Bearer ").strip()
+        with auth_connection() as connection:
+            connection.execute("DELETE FROM sessions WHERE token = ?", (token,))
+    return {"status": "ok"}
+
+
 @app.get("/api/pathways")
 def pathways() -> dict[str, object]:
     _, _, skill_map, _, _, _ = project_data()
@@ -346,7 +473,7 @@ def profiles() -> dict[str, object]:
 
 
 @app.post("/api/learning-path")
-def learning_path(payload: LearningPathRequest) -> dict[str, object]:
+def learning_path(payload: LearningPathRequest, username: str = Depends(require_user)) -> dict[str, object]:
     resources, modules, skill_map, _, _, suite = project_data()
     resources_by_id = {resource.resource_id: resource for resource in resources}
     modules_by_parent = modules_by_parent_resource(modules)
@@ -415,7 +542,7 @@ def learning_path(payload: LearningPathRequest) -> dict[str, object]:
 
 
 @app.post("/api/complete-item")
-def complete_item(payload: CompleteItemRequest) -> dict[str, object]:
+def complete_item(payload: CompleteItemRequest, username: str = Depends(require_user)) -> dict[str, object]:
     active_skills = dict(payload.current_skills)
     completed_topics = set(payload.completed_topics)
     before = dict(active_skills)

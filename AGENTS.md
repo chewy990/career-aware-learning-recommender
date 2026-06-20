@@ -31,6 +31,8 @@ Data Scientist can also appear as a follow-on path from Data Analyst after the p
 ## Key Files
 
 - `frontend/` - React learner interface
+- `frontend/public/landing-hero.jpg` - current still-image landing hero background
+- `frontend/public/landing-page-video.mp4` - imported landing video source asset, not currently used by the hero
 - `src/api/main.py` - FastAPI API for React frontend
 - `src/app.py` - Streamlit prototype
 - `src/run_pipeline.py` - evaluation runner
@@ -48,13 +50,20 @@ Data Scientist can also appear as a follow-on path from Data Analyst after the p
 ## Current UX Rules
 
 - React user flow: Landing -> Pathway Selection -> Skill Setup -> Course/Home Dashboard.
-- Keep the landing hero headline: `Learn just enough. Build early. Deepen later.`
+- Landing is the first screen and should stay simple for design iteration.
+- Keep the landing hero headline split across two lines after the first full stop: `Learn just enough.` then `Build early. Deepen later.`
+- Landing uses a still image hero background from `frontend/public/landing-hero.jpg`, a short supporting line, and a `Start Learning` button.
+- `Start Learning` sends signed-out users to Login/Register and signed-in users to Pathway Selection.
+- Login/Register uses username and password with a show-password eye toggle.
+- React auth is backed by FastAPI endpoints and local SQLite; `data/auth.sqlite3` is ignored by git.
+- Each account must have isolated browser-local learner progress, keyed by username. Skills, selected pathways, completions, completed topics, and path snapshots must not persist across different accounts.
 - Pathway Selection should show pathway cards only. If generated courses already exist, show `Back to Courses`.
 - Skill Setup should show the selected pathway's 5 core skill sliders and `Preferred course difficulty`.
 - Course/Home Dashboard is the main home after generation and can hold multiple generated pathway courses.
 - Dashboard should show all selected/generated pathways as tabs/chips and one active pathway course at a time.
 - Switching pathway tabs should feel smooth, using a light slide/fade transition.
 - Dashboard actions should include: Landing page, Choose new pathway, Research view, Reset skills, Reset progress.
+- Dashboard should include a subtle Logout action.
 - React skill levels use words everywhere: `Not started`, `Basic`, `Working knowledge`, `Confident`.
 - Do not show sample profile presets in the learner flow.
 - Session skills persist across pathway switches and overlapping skills.
@@ -68,6 +77,7 @@ Data Scientist can also appear as a follow-on path from Data Analyst after the p
 - Broad tracks should appear only as optional structured references.
 - Show the purple congratulatory mastery message for every fully completed pathway.
 - Keep Research View readable with wrapped explanations, current-learner relevant course cards, generated metrics, NDCG@5 chart, dataset summary, and collapsed evaluation-profile examples.
+- Research View must include a direct `Back to Courses` button near the top and at the bottom.
 
 ## Git Rules
 

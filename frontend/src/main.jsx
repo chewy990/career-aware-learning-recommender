@@ -4,6 +4,7 @@ import "./styles.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 const STORAGE_KEY = "career-aware-recommender-session-v1";
+const AUTH_STORAGE_KEY = "career-aware-recommender-auth-v1";
 const DIFFICULTIES = [
   { value: 1, label: "Beginner" },
   { value: 2, label: "Intermediate" },
@@ -149,22 +150,57 @@ function refreshPathState(pathData, nextSession) {
 function markPathItemCompleted(pathData, itemId, nextSession) {
   return refreshPathState(syncCompletedFlags(pathData, nextSession.completedItemIds), nextSession);
 }
-function loadSession() {
+
+function normaliseSessionOwner(username) {
+  return (username || "").trim().toLowerCase();
+}
+
+function sessionKeyFor(username) {
+  const owner = normaliseSessionOwner(username);
+  return owner ? `${STORAGE_KEY}:${owner}` : "";
+}
+
+function loadSession(username) {
+  const key = sessionKeyFor(username);
+  if (!key) return emptySession;
   try {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
+    const saved = window.localStorage.getItem(key);
     return saved ? normaliseSession(JSON.parse(saved)) : emptySession;
   } catch {
     return emptySession;
   }
 }
 
-function saveSession(session) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+function saveSession(username, session) {
+  const key = sessionKeyFor(username);
+  if (key) window.localStorage.setItem(key, JSON.stringify(session));
+}
+
+function loadAuth() {
+  try {
+    const saved = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : { token: "", username: "" };
+  } catch {
+    return { token: "", username: "" };
+  }
+}
+
+function saveAuth(auth) {
+  if (auth?.token) {
+    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
+  } else {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  }
+}
+
+function authHeaders(auth) {
+  return auth?.token ? { Authorization: `Bearer ${auth.token}` } : {};
 }
 
 function App() {
   const [meta, setMeta] = useState(null);
-  const [session, setSession] = useState(loadSession);
+  const [auth, setAuth] = useState(loadAuth);
+  const [session, setSession] = useState(() => loadSession(loadAuth().username));
   const [step, setStep] = useState("landing");
   const [path, setPath] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(null);
@@ -175,8 +211,12 @@ function App() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    saveSession(session);
-  }, [session]);
+    saveSession(auth.username, session);
+  }, [auth.username, session]);
+
+  useEffect(() => {
+    saveAuth(auth);
+  }, [auth]);
 
   useEffect(() => {
     async function loadMeta() {
@@ -223,6 +263,70 @@ function App() {
     [activePathway]
   );
 
+  async function startLearning() {
+    setError("");
+    if (!auth.token) {
+      setStep("auth");
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/me`, {
+        headers: authHeaders(auth),
+      });
+      if (!response.ok) throw new Error("Session expired");
+      const data = await response.json();
+      const username = data.username || auth.username;
+      setAuth((current) => ({ ...current, username }));
+      setSession(loadSession(username));
+      setPath(null);
+      setLastUpdate(null);
+      setSkillCheckIds([]);
+      setStep("pathways");
+    } catch {
+      setAuth({ token: "", username: "" });
+      setSession(emptySession);
+      setPath(null);
+      setLastUpdate(null);
+      setSkillCheckIds([]);
+      setStep("auth");
+    }
+  }
+
+  async function submitAuth(mode, credentials) {
+    setError("");
+    const response = await fetch(`${API_BASE}/api/auth/${mode}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.detail || "Could not sign in.");
+    }
+    setAuth({ token: data.token, username: data.username });
+    setSession(loadSession(data.username));
+    setPath(null);
+    setLastUpdate(null);
+    setSkillCheckIds([]);
+    setStep("pathways");
+  }
+
+  async function logout() {
+    if (auth.token) {
+      await fetch(`${API_BASE}/api/auth/logout`, {
+        method: "POST",
+        headers: authHeaders(auth),
+      }).catch(() => {});
+    }
+    setAuth({ token: "", username: "" });
+    setSession(emptySession);
+    setPath(null);
+    setLastUpdate(null);
+    setSkillCheckIds([]);
+    setStep("landing");
+    setError("");
+  }
+
   async function loadLearningPath(nextSession = session, pathwayId = nextSession.activePathway || nextSession.selectedPathway) {
     if (!pathwayId) return null;
     const key = snapshotKeyFor(nextSession, pathwayId);
@@ -241,7 +345,7 @@ function App() {
     try {
       const response = await fetch(`${API_BASE}/api/learning-path`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders(auth) },
         body: JSON.stringify({
           target_pathway: pathwayId,
           current_skills: nextSession.skills,
@@ -325,11 +429,36 @@ function App() {
     loadLearningPath(next, pathwayId);
   }
 
+  function deletePathway(pathwayId) {
+    const pathwayLabel = meta?.pathways?.find((item) => item.id === pathwayId)?.label || "this pathway";
+    if (!window.confirm(`Are you sure you want to delete ${pathwayLabel} from your courses? Your shared skills and completed progress will stay saved.`)) return;
+    const nextSelectedPathways = session.selectedPathways.filter((item) => item !== pathwayId);
+    const nextActivePathway = session.activePathway === pathwayId ? nextSelectedPathways[0] || "" : session.activePathway;
+    const nextPathSnapshots = Object.fromEntries(
+      Object.entries(session.pathSnapshots || {}).filter(([key]) => !key.startsWith(`${pathwayId}|`))
+    );
+    const next = {
+      ...session,
+      selectedPathways: nextSelectedPathways,
+      activePathway: nextActivePathway,
+      selectedPathway: nextActivePathway || session.selectedPathway,
+      pathSnapshots: nextPathSnapshots,
+    };
+    setSession(next);
+    setLastUpdate(null);
+    if (nextActivePathway) {
+      loadLearningPath(next, nextActivePathway);
+    } else {
+      setPath(null);
+      setStep("pathways");
+    }
+  }
+
   async function completeItem(stageName, item) {
     if (session.completedItemIds.includes(item.item_id)) return;
     const response = await fetch(`${API_BASE}/api/complete-item`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders(auth) },
       body: JSON.stringify({
         stage: stageName,
         current_skills: session.skills,
@@ -388,7 +517,15 @@ function App() {
   if (step === "landing") {
     return (
       <Shell>
-        <Hero onStart={() => setStep("pathways")} pathwayCount={meta?.pathways?.length || 0} />
+        <Hero onStart={startLearning} />
+      </Shell>
+    );
+  }
+
+  if (step === "auth") {
+    return (
+      <Shell>
+        <AuthStep onSubmit={submitAuth} onBack={() => setStep("landing")} />
       </Shell>
     );
   }
@@ -404,16 +541,22 @@ function App() {
           <p>Generated courses stay here. Add another pathway when you are ready.</p>
 
           <div className="session-summary">
+            {auth.username && (
+              <div>
+                <span>Signed in</span>
+                <strong>{auth.username}</strong>
+              </div>
+            )}
             <div>
               <span>Current step</span>
-              <strong>{step === "pathways" ? "Choose pathway" : step === "skills" ? "Enter skills" : step === "research" ? "Research view" : "Dashboard"}</strong>
+              <strong>{step === "pathways" ? "Choose pathway" : step === "skills" ? "Enter skills" : step === "auth" ? "Login" : step === "research" ? "Research view" : "Dashboard"}</strong>
             </div>
             <div>
               <span>Courses</span>
               <strong>{session.selectedPathways.length}</strong>
             </div>
             <div>
-              <span>Completed</span>
+              <span>Skills completed</span>
               <strong>{session.completedItemIds.length}</strong>
             </div>
           </div>
@@ -424,6 +567,7 @@ function App() {
             <button className="ghost" onClick={() => { setPreviousStep("dashboard"); setStep("research"); }}>Research view</button>
             <button className="ghost" onClick={resetProgress}>Reset progress</button>
             <button className="ghost" onClick={resetSkills}>Reset skills</button>
+            <button className="ghost subtle" onClick={logout}>Logout</button>
           </div>
         </aside>
 
@@ -457,6 +601,7 @@ function App() {
               activePathway={activePathway}
               activeCoreSkillIds={activeCoreSkillIds}
               onSwitchPathway={switchActivePathway}
+              onDeletePathway={deletePathway}
               onComplete={completeItem}
               lastUpdate={lastUpdate}
             />
@@ -480,22 +625,119 @@ function Shell({ children }) {
   return <div className="page-shell">{children}</div>;
 }
 
-function Hero({ onStart, pathwayCount }) {
+function Hero({ onStart }) {
   return (
     <header className="hero">
+      <div className="hero-scrim" aria-hidden="true" />
       <div className="hero-copy">
-        <div className="pill">Career-aware recommender</div>
-        <h1>Learn just enough. Build early. Deepen later.</h1>
-        <p>Choose a computing pathway, answer only the skill checks that are still unknown, and get a staged learning plan that favours useful practice over rigid full tracks.</p>
+        <h1>Learn just enough.<br />Build early. Deepen later.</h1>
+        <p>Start with the skills that matter, then grow your pathway through practical progress.</p>
         <button className="primary" onClick={onStart}>Start Learning</button>
       </div>
-      <div className="hero-system" aria-hidden="true">
-        <div className="orbit orbit-a" />
-        <div className="orbit orbit-b" />
-        <div className="signal-card top">{pathwayCount} pathways</div>
-        <div className="signal-card bottom">Session skills saved</div>
-      </div>
     </header>
+  );
+}
+
+function AuthStep({ onSubmit, onBack }) {
+  const [mode, setMode] = useState("login");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const isRegistering = mode === "register";
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    const nextUsername = username.trim();
+    if (!nextUsername || !password) {
+      setError("Enter both a username and password.");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      setError("");
+      await onSubmit(mode, { username: nextUsername, password });
+    } catch (err) {
+      setError(err.message || "Could not sign in.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="auth-shell">
+      <section className="auth-panel">
+        <div className="section-heading">
+          <span>{isRegistering ? "Create account" : "Login"}</span>
+          <h2>{isRegistering ? "Create your learner account" : "Welcome back"}</h2>
+          <p>Sign in after the landing page so your course dashboard stays tucked behind a simple account step.</p>
+        </div>
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <label className="field">
+            <span>Username</span>
+            <input value={username} autoComplete="username" onChange={(event) => setUsername(event.target.value)} />
+          </label>
+          <label className="field">
+            <span>Password</span>
+            <div className="password-field">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                autoComplete={isRegistering ? "new-password" : "current-password"}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              <button
+                className="password-toggle"
+                type="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((current) => !current)}
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
+          </label>
+          {error && <div className="error-banner">{error}</div>}
+          <div className="action-row">
+            <button className="primary" type="submit" disabled={submitting}>
+              {submitting ? "Please wait..." : isRegistering ? "Create account" : "Log in"}
+            </button>
+            <button className="ghost" type="button" onClick={onBack}>Back to landing</button>
+          </div>
+        </form>
+        <button
+          className="auth-toggle"
+          type="button"
+          onClick={() => {
+            setMode(isRegistering ? "login" : "register");
+            setError("");
+          }}
+        >
+          {isRegistering ? "Already have an account? Log in." : "New here? Create an account."}
+        </button>
+      </section>
+    </main>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M2.4 12s3.5-6 9.6-6 9.6 6 9.6 6-3.5 6-9.6 6-9.6-6-9.6-6Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 3l18 18" />
+      <path d="M9.6 5.4A10.2 10.2 0 0 1 12 5c6.1 0 9.6 7 9.6 7a16.7 16.7 0 0 1-3 3.8" />
+      <path d="M14.1 14.1A3 3 0 0 1 9.9 9.9" />
+      <path d="M6.5 6.8C3.9 8.5 2.4 12 2.4 12s3.5 7 9.6 7a9.9 9.9 0 0 0 4.2-.9" />
+    </svg>
   );
 }
 
@@ -580,7 +822,7 @@ function CourseStep({ pathways, hasCourses, choosePathway, onBack }) {
   );
 }
 
-function Dashboard({ pathways, session, path, pathLoading, activePathway, activeCoreSkillIds, onSwitchPathway, onComplete, lastUpdate }) {
+function Dashboard({ pathways, session, path, pathLoading, activePathway, activeCoreSkillIds, onSwitchPathway, onDeletePathway, onComplete, lastUpdate }) {
   const selectedPathwaySet = new Set(session.selectedPathways);
   const selectedPathways = pathways.filter((pathway) => selectedPathwaySet.has(pathway.id));
   if (selectedPathways.length === 0) {
@@ -617,6 +859,17 @@ function Dashboard({ pathways, session, path, pathLoading, activePathway, active
           lastUpdate={lastUpdate}
         />
       </div>
+      <div className="danger-zone">
+        <h3>Remove a pathway</h3>
+        <p>Delete a pathway course if you no longer want to commit to it. Shared skills and completed progress stay saved.</p>
+        <div className="delete-pathway-list">
+          {selectedPathways.map((pathway) => (
+            <button className="danger-button" key={pathway.id} onClick={() => onDeletePathway(pathway.id)}>
+              Delete {pathway.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -625,6 +878,8 @@ function PathStep({ path, pathLoading, session, selectedPathway, coreSkillIds, o
   if (pathLoading && !path) return <div className="skeleton">Generating staged path...</div>;
   if (!path) return <div className="empty-state">Choose a pathway to generate your learning path.</div>;
   const visibleSkillGaps = (path.skill_gaps || []).filter((gap) => coreSkillIds.has(gap.skill));
+  const visibleItems = (path.stages || []).flatMap((stage) => stage.items || []);
+  const pathwayComplete = visibleItems.length > 0 && visibleItems.every((item) => item.completed);
   return (
     <div className="stack">
       <div className="path-header">
@@ -662,10 +917,10 @@ function PathStep({ path, pathLoading, session, selectedPathway, coreSkillIds, o
         </div>
       )}
 
-      {path.mastery && (
+      {(path.mastery || pathwayComplete) && (
         <div className="mastery-note">
-          <strong>Congratulations, pathway foundation complete!</strong>
-          <p>You finished the visible next steps for this pathway. Nice work. You can now deepen later or switch to another pathway with your saved skills.</p>
+          <strong>Congratulations, you completed this pathway!</strong>
+          <p>You finished every visible step in this course. Nice work. You can review the resources, deepen later, or start another pathway with your saved skills.</p>
         </div>
       )}
 
@@ -676,7 +931,7 @@ function PathStep({ path, pathLoading, session, selectedPathway, coreSkillIds, o
       </div>
 
       <details className="skill-gap-panel">
-        <summary>Skill gaps ({visibleSkillGaps.length})</summary>
+        <summary>Progression ({visibleSkillGaps.length})</summary>
         {visibleSkillGaps.length === 0 ? <p>No actionable core gaps right now.</p> : visibleSkillGaps.map((gap) => (
           <div className="gap-row" key={gap.skill}>
             <span>{gap.label}</span>
@@ -779,10 +1034,13 @@ function ResearchView({ path, session, selectedPathway, coreSkillIds, onBack }) 
 
   return (
     <div className="stack">
-      <div className="section-heading">
-        <span>Research</span>
-        <h2>Research view</h2>
-        <p>Understand why resources were chosen for your current session, with model evidence kept below for evaluation.</p>
+      <div className="research-header">
+        <div className="section-heading">
+          <span>Research</span>
+          <h2>Research view</h2>
+          <p>Understand why resources were chosen for your current session, with model evidence kept below for evaluation.</p>
+        </div>
+        <button className="ghost inline-action" onClick={onBack}>Back to Courses</button>
       </div>
       <CurrentLearnerResearch path={path} session={session} selectedPathway={selectedPathway} coreSkillIds={coreSkillIds} />
       {metricsLoading ? <div className="skeleton">Loading model metrics...</div> : (
@@ -830,7 +1088,7 @@ function ResearchView({ path, session, selectedPathway, coreSkillIds, onBack }) 
           </div>
         )}
       </details>
-      <button className="ghost" onClick={onBack}>Back</button>
+      <button className="ghost" onClick={onBack}>Back to Courses</button>
     </div>
   );
 }
@@ -845,7 +1103,7 @@ function CurrentLearnerResearch({ path, session, selectedPathway, coreSkillIds }
       <div>
         <h3>Relevant courses for you</h3>
         <p>
-          These are the current resources chosen from your pathway, saved skills, completed modules, preferred course difficulty, and skill gaps.
+          These are the current resources chosen from your pathway, saved skills, completed modules, preferred course difficulty, and progression needs.
         </p>
       </div>
       {!path ? (
@@ -873,7 +1131,7 @@ function CurrentLearnerResearch({ path, session, selectedPathway, coreSkillIds }
 }
 
 function normaliseExplanation(explanation) {
-  if (!explanation) return "it matches your current pathway and skill gaps.";
+  if (!explanation) return "it matches your current pathway and progression needs.";
   return explanation.replace(/^Recommended because\s+/i, "").replace(/\.$/, "") + ".";
 }
 

@@ -21,6 +21,7 @@ outputs/app_compile_check.pyc
 .env
 .env.*
 *.env
+data/auth.sqlite3
 
 # Dependency folders
 node_modules/
