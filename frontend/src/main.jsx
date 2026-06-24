@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import Landing from "./Landing";
 import "./styles.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
+export const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 const STORAGE_KEY = "career-aware-recommender-session-v1";
 const AUTH_STORAGE_KEY = "career-aware-recommender-auth-v1";
 const DIFFICULTIES = [
@@ -517,7 +518,7 @@ function App() {
   if (step === "landing") {
     return (
       <Shell>
-        <Hero onStart={startLearning} />
+        <Landing onStart={startLearning} />
       </Shell>
     );
   }
@@ -623,19 +624,6 @@ function App() {
 
 function Shell({ children }) {
   return <div className="page-shell">{children}</div>;
-}
-
-function Hero({ onStart }) {
-  return (
-    <header className="hero">
-      <div className="hero-scrim" aria-hidden="true" />
-      <div className="hero-copy">
-        <h1>Learn just enough.<br />Build early. Deepen later.</h1>
-        <p>Start with the skills that matter, then grow your pathway through practical progress.</p>
-        <button className="primary" onClick={onStart}>Start Learning</button>
-      </div>
-    </header>
-  );
 }
 
 function AuthStep({ onSubmit, onBack }) {
