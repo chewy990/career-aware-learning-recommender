@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Lenis from "lenis";
-import { API_BASE } from "./main";
+import { API_BASE } from "./lib/api";
 
 const STAGES = [
   {
